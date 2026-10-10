@@ -39,7 +39,7 @@
     </StackPanel>
    </Border>
    </StackPanel>
-</StackPanel></ScrollViewer><ScrollViewer x:Name="AboutPanel" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="14" Padding="16" HorizontalAlignment="Center" MaxWidth="520">
+<Border CornerRadius="12" Padding="24" BorderThickness="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"><StackPanel Spacing="8"><TextBlock x:Name="UpdatesHeadingSettings" FontSize="16" FontWeight="SemiBold"/><TextBlock x:Name="UpdatesNoteSettings" FontSize="13" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><TextBlock x:Name="InstalledVersionSettings" FontSize="13"/><Button x:Name="CheckUpdatesSettings" Click="CheckUpdatesClick" HorizontalAlignment="Left"/><TextBlock x:Name="UpdateResultSettings" FontSize="13" TextWrapping="Wrap"/><HyperlinkButton x:Name="UpdateLinkSettings" Visibility="Collapsed" HorizontalAlignment="Left"/></StackPanel></Border></StackPanel></ScrollViewer><ScrollViewer x:Name="AboutPanel" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="14" Padding="16" HorizontalAlignment="Center" MaxWidth="520">
 
 <Image Source="ms-appx:///3-AppIcon.png" Width="128" Height="128"/>
 <TextBlock Text="Fluent TLS Tunnel" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Center"/>
@@ -50,7 +50,7 @@
 <HyperlinkButton Content="brought to you by Instinct" NavigateUri="https://instinct.com" HorizontalAlignment="Center" FlowDirection="LeftToRight"/>
 <HyperlinkButton x:Name="RepositoryLink" NavigateUri="https://github.com/MohamedElnaggar00/fluent-tls-tunnel" HorizontalAlignment="Center" FlowDirection="LeftToRight"/>
 <TextBlock Text="MIT License" HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-</StackPanel></Border></StackPanel></ScrollViewer></Grid></Border></NavigationView>
+</StackPanel></Border><Border CornerRadius="12" Padding="24" BorderThickness="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"><StackPanel Spacing="8"><TextBlock x:Name="UpdatesHeadingAbout" FontSize="16" FontWeight="SemiBold"/><TextBlock x:Name="UpdatesNoteAbout" FontSize="13" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/><TextBlock x:Name="InstalledVersionAbout" FontSize="13"/><Button x:Name="CheckUpdatesAbout" Click="CheckUpdatesClick" HorizontalAlignment="Left"/><TextBlock x:Name="UpdateResultAbout" FontSize="13" TextWrapping="Wrap"/><HyperlinkButton x:Name="UpdateLinkAbout" Visibility="Collapsed" HorizontalAlignment="Left"/></StackPanel></Border></StackPanel></ScrollViewer></Grid></Border></NavigationView>
 
  </Grid>
 </Window>

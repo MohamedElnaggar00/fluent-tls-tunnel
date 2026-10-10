@@ -97,6 +97,11 @@ public sealed partial class MainWindow : Window
         Root.RequestedTheme=profile.Theme switch {"light"=>ElementTheme.Light,"dark"=>ElementTheme.Dark,_=>ElementTheme.Default};
         ProfileGroup.Text=T("CONNECTION PROFILE","إعدادات الاتصال");SettingsTitle.Text=T("Settings","الإعدادات");AppearanceGroup.Text=T("APPEARANCE AND LANGUAGE","المظهر واللغة");RoutingGroup.Text=T("ROUTING AND DNS","التوجيه وDNS");
         ConnectionNav.Content=T("Connection","الاتصال"); SettingsNav.Content=T("Settings","الإعدادات"); AboutNav.Content=T("About","حول التطبيق");
+        foreach(var heading in new[]{UpdatesHeadingSettings,UpdatesHeadingAbout})heading.Text=T("Updates","التحديثات");
+        foreach(var note in new[]{UpdatesNoteSettings,UpdatesNoteAbout})note.Text=T("The app never checks for updates on its own. Press the button to check once, right now.","لا يتحقق التطبيق من التحديثات من تلقاء نفسه. اضغط الزر للتحقق مرة واحدة الآن.");
+        foreach(var text in new[]{InstalledVersionSettings,InstalledVersionAbout})text.Text=T("Installed version: v","الإصدار المثبت: v")+CurrentVersion;
+        foreach(var button in new[]{CheckUpdatesSettings,CheckUpdatesAbout}){button.Content=T("Check for updates","التحقق من التحديثات");button.HorizontalAlignment=Arabic?HorizontalAlignment.Right:HorizontalAlignment.Left;}
+        foreach(var link in new[]{UpdateLinkSettings,UpdateLinkAbout}){link.Content=T("Open download page","فتح صفحة التنزيل");link.HorizontalAlignment=Arabic?HorizontalAlignment.Right:HorizontalAlignment.Left;}
         VersionText.Text="v" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
         AboutDescription.Text=T("SSH over TLS with SNI, automatic Windows TCP routing and a local SOCKS5 proxy. UDP is not supported.","SSH عبر TLS مع SNI وتوجيه TCP تلقائي لويندوز ووكيل SOCKS5 محلي. لا يُدعم UDP.");
         DeveloperCredit.Text=T("Developed by Mohamed Elnaggar","تطوير محمد النجار");
@@ -262,6 +267,41 @@ public sealed partial class MainWindow : Window
         return await dialog.ShowAsync()==ContentDialogResult.Primary?secret.Password:null;
     }
 
+    static string CurrentVersion=>typeof(MainWindow).Assembly.GetName().Version?.ToString(3)??"0.1.2";
+    bool checkingUpdate;
+    async void CheckUpdatesClick(object sender,RoutedEventArgs e)
+    {
+        if(checkingUpdate)return;checkingUpdate=true;
+        CheckUpdatesSettings.IsEnabled=CheckUpdatesAbout.IsEnabled=false;
+        UpdateLinkSettings.Visibility=UpdateLinkAbout.Visibility=Visibility.Collapsed;
+        UpdateResultSettings.Text=UpdateResultAbout.Text=T("Checking...","جارٍ التحقق...");
+        try
+        {
+            using var http=new HttpClient{Timeout=TimeSpan.FromSeconds(20)};
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("FluentTlsTunnel/"+CurrentVersion);
+            using var response=await http.GetAsync("https://api.github.com/repos/MohamedElnaggar00/fluent-tls-tunnel/releases?per_page=30");response.EnsureSuccessStatusCode();
+            using var json=System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Version? newest=null;Uri? url=null;
+            foreach(var r in json.RootElement.EnumerateArray())
+            {
+                if(r.TryGetProperty("draft",out var draft)&&draft.GetBoolean())continue;
+                var tag=(r.GetProperty("tag_name").GetString()??"").TrimStart('v','V');
+                if(Version.TryParse(tag,out var v)&&(newest==null||v>newest)&&Uri.TryCreate(r.GetProperty("html_url").GetString(),UriKind.Absolute,out var u)&&u.Host=="github.com"){newest=v;url=u;}
+            }
+            string result;
+            if(newest==null)result=T("No releases found yet.","لا توجد إصدارات بعد.");
+            else if(newest>Version.Parse(CurrentVersion))
+            {
+                result=T($"Version {newest} is available.",$"الإصدار {newest} متاح.");
+                UpdateLinkSettings.NavigateUri=UpdateLinkAbout.NavigateUri=url;
+                UpdateLinkSettings.Visibility=UpdateLinkAbout.Visibility=Visibility.Visible;
+            }
+            else result=T($"You're up to date (v{CurrentVersion}).",$"أنت على أحدث إصدار (v{CurrentVersion}).");
+            UpdateResultSettings.Text=UpdateResultAbout.Text=result;
+        }
+        catch{UpdateResultSettings.Text=UpdateResultAbout.Text=T("Couldn't check for updates. Check your internet connection and try again.","تعذر التحقق من التحديثات. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.");}
+        finally{checkingUpdate=false;CheckUpdatesSettings.IsEnabled=CheckUpdatesAbout.IsEnabled=true;}
+    }
     string passwordIdentity="";
     void RefreshPassword()
     {

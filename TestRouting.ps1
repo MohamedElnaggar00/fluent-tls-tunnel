@@ -8,7 +8,7 @@ function Snapshot {
 }
 $before=Snapshot
 & dotnet run --project RoutingTests.csproj -c Release
-if($LASTEXITCODE -ne 0){throw 'Routing integration tests failed'}
+if($LASTEXITCODE -ne 0){Get-ChildItem (Join-Path $env:LOCALAPPDATA 'FluentTlsTunnel') -Recurse -Filter 'engine-*.txt' | ForEach-Object {Get-Content $_.FullName};throw 'Routing integration tests failed'}
 Start-Sleep -Seconds 2
 $after=Snapshot
 if($before -ne $after){$before|Set-Content artifacts/routing-before.json;$after|Set-Content artifacts/routing-after.json;throw 'Route/DNS state was not restored exactly'}

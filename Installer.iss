@@ -1,7 +1,7 @@
 #define AppName "Fluent TLS Tunnel"
 #define AppExe "FluentTlsTunnel.exe"
 #ifndef BuildVersion
-#define BuildVersion "0.1.1"
+#define BuildVersion "0.1.2"
 #endif
 #ifndef SourceDir
 #define SourceDir "artifacts\portable"
