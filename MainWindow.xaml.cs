@@ -54,6 +54,7 @@ public sealed partial class MainWindow : Window
         Host.LostFocus+=(_,_)=>RefreshPassword();Username.LostFocus+=(_,_)=>RefreshPassword();Port.LostFocus+=(_,_)=>RefreshPassword();
         Language.SelectedIndex=profile.Language switch {"en"=>1,"ar"=>2,_=>0};
         Theme.SelectedIndex=profile.Theme switch {"light"=>1,"dark"=>2,_=>0};
+        Backdrop.SelectedIndex=profile.Backdrop switch {"mica-alt"=>1,"acrylic"=>2,_=>0};
         Nav.SelectedItem=ConnectionNav;
         loaded=true; Localize();
         if(!Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview=")))
@@ -69,6 +70,8 @@ public sealed partial class MainWindow : Window
         var preview=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--preview="));
         if(preview!=null)
         {
+            profile.Theme=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--theme="))?.Split('=')[1]??profile.Theme;
+            profile.Backdrop=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--material="))?.Split('=')[1]??profile.Backdrop;
             profile.Language=preview.Split('=')[1]; Language.SelectedIndex=profile.Language=="ar"?2:1;
             var mode=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--state="))?.Split('=')[1];
             previewConnected=mode=="connected";
@@ -118,6 +121,7 @@ public sealed partial class MainWindow : Window
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MinimizeCaption,T("Minimize","تصغير"));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MaximizeCaption,T("Maximize or restore","تكبير أو استعادة"));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(CloseCaption,T("Close","إغلاق"));
+        SystemBackdrop=profile.Backdrop switch {"mica-alt"=>new MicaBackdrop{Kind=Microsoft.UI.Composition.SystemBackdrops.MicaKind.BaseAlt},"acrylic"=>new DesktopAcrylicBackdrop(),_=>new MicaBackdrop()};
         Root.RequestedTheme=profile.Theme switch {"light"=>ElementTheme.Light,"dark"=>ElementTheme.Dark,_=>ElementTheme.Default};
         ProfileGroup.Text=T("CONNECTION PROFILE","إعدادات الاتصال");SettingsTitle.Text=T("Settings","الإعدادات");AppearanceGroup.Text=T("APPEARANCE AND LANGUAGE","المظهر واللغة");RoutingGroup.Text=T("ROUTING AND DNS","التوجيه وDNS");
         ConnectionNav.Content=T("Connection","الاتصال"); SettingsNav.Content=T("Settings","الإعدادات"); AboutNav.Content=T("About","حول التطبيق");
@@ -130,7 +134,7 @@ public sealed partial class MainWindow : Window
         AboutDescription.Text=T("SSH over TLS with SNI, automatic Windows TCP routing and a local SOCKS5 proxy. UDP is not supported.","SSH عبر TLS مع SNI وتوجيه TCP تلقائي لويندوز ووكيل SOCKS5 محلي. لا يُدعم UDP.");
         DeveloperCredit.Text=T("Developed by Mohamed Elnaggar","تطوير محمد النجار");
         RepositoryLink.Content="GitHub Repo Link";
-        Language.Header=T("Language","اللغة"); Theme.Header=T("Appearance","المظهر");
+        Language.Header=T("Language","اللغة"); Theme.Header=T("Appearance","المظهر"); Backdrop.Header=T("Window material","خامة النافذة");
         Subtitle.Text=T("Connection","الاتصال");
         RouteWindows.Content=T("Route Windows traffic automatically (administrator permission)","توجيه اتصال ويندوز تلقائيًا (يتطلب صلاحية المسؤول)");
         ConnectionTitle.Text=T("Server & authentication","الخادم والمصادقة"); Host.Header=T("Server","الخادم"); Port.Header=T("Port","المنفذ"); Sni.Header="SNI";
@@ -152,7 +156,8 @@ public sealed partial class MainWindow : Window
         if(!loaded) return;
         profile.Language=(Language.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"system";
         profile.Theme=(Theme.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"system";
-        Localize();
+        profile.Backdrop=(Backdrop.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"mica";
+        profile.Save();Localize();
     }
     void SetState()
     {
@@ -165,7 +170,7 @@ public sealed partial class MainWindow : Window
         StatusGlyph.Glyph=connected?"\uE73E":"\uE72E";
         if(connected) StatusGlyph.Foreground=(Brush)Application.Current.Resources["SystemFillColorSuccessBrush"]; else StatusGlyph.ClearValue(FontIcon.ForegroundProperty);
         Status.Severity=connected?InfoBarSeverity.Success:InfoBarSeverity.Informational;
-        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns,RestoreRouting,RouteWindows,DnsSecondary}) control.IsEnabled=!busy && tunnel==null;
+        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns,RestoreRouting,RouteWindows,DnsSecondary,Backdrop}) control.IsEnabled=!busy && tunnel==null;
     }
     void LoadDnsFields(string addresses)
     {
