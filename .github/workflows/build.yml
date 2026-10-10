@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: windows-latest
@@ -46,6 +46,21 @@ jobs:
       - name: Capture UI previews
         shell: powershell
         run: ./Capture.ps1
+      - name: Store review screenshots
+        shell: pwsh
+        run: |
+          $shots=Join-Path $env:TEMP 'TlsShots'
+          New-Item $shots -ItemType Directory -Force | Out-Null
+          Copy-Item artifacts/screenshots/* $shots
+          git config user.name 'Mohamed Elnaggar'
+          git config user.email 'MohamedElnaggar00@users.noreply.github.com'
+          git checkout --orphan ui-review
+          git rm -rf .
+          Copy-Item "$shots/*" .
+          git add *.png
+          git commit -m 'Windows CI UI review screenshots'
+          git push origin HEAD:ui-review --force
+          git checkout $env:GITHUB_SHA --force
       - name: Smoke test bundled install and uninstall
         shell: pwsh
         run: |
