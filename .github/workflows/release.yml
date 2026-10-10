@@ -34,6 +34,6 @@ jobs:
           test "$(gh api repos/${GITHUB_REPOSITORY}/actions/runs/${{ inputs.run_id }} --jq .head_sha)" = "${{ inputs.sha }}"
           test "$(gh api repos/${GITHUB_REPOSITORY}/actions/runs/${{ inputs.run_id }} --jq .conclusion)" = "success"
           test -f verified-build/routing-passed.txt
-          test "${{ inputs.tag }}" = "v0.1.2"
+          test "${{ inputs.tag }}" = "v0.1.3"
           gh release view "${{ inputs.tag }}" --json isDraft --jq .isDraft | grep -qx true
           gh release upload "${{ inputs.tag }}" verified-build/packages/Fluent-TLS-Tunnel-installer.exe verified-build/packages/Fluent-TLS-Tunnel-portable.zip verified-build/packages/Fluent-TLS-Tunnel-runtime-dependent.exe
