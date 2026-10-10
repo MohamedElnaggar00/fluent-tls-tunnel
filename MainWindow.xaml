@@ -3,9 +3,9 @@
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <StackPanel Spacing="6"><TextBlock Text="Fluent TLS Tunnel" FontSize="28" FontWeight="SemiBold"/><TextBlock x:Name="Subtitle" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
-   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><ComboBox x:Name="Language" Width="130" SelectionChanged="SettingsChanged"><ComboBoxItem Content="System" Tag="system"/><ComboBoxItem Content="English" Tag="en"/><ComboBoxItem Content="العربية" Tag="ar"/></ComboBox><ComboBox x:Name="Theme" Width="110" SelectionChanged="SettingsChanged"><ComboBoxItem Content="System" Tag="system"/><ComboBoxItem Content="Light" Tag="light"/><ComboBoxItem Content="Dark" Tag="dark"/></ComboBox></StackPanel>
+
   </Grid>
-  <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="16">
+  <Pivot Grid.Row="1"><PivotItem x:Name="ConnectionPage"><ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="16">
    <StackPanel Spacing="18" HorizontalAlignment="Center" Margin="0,12,0,20"><SymbolIcon Symbol="ProtectedDocument" Width="72" Height="72"/><TextBlock x:Name="HeroTitle" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock x:Name="HeroDetail" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel>
    <InfoBar x:Name="Status" IsOpen="True" IsClosable="False" Severity="Informational"/>
    <Expander x:Name="ProfilePanel" HorizontalAlignment="Stretch" IsExpanded="True">
@@ -21,6 +21,10 @@
     </StackPanel>
    </Border>
    </Expander>
+
+   <Expander x:Name="LogsPanel" HorizontalAlignment="Stretch"><TextBox x:Name="Logs" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="150" FlowDirection="LeftToRight" FontFamily="Cascadia Mono"/></Expander>
+   <TextBlock x:Name="Credits" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"><Run Text="Mohamed Elnaggar · "/><Hyperlink NavigateUri="https://instinct.com">brought to you by Instinct</Hyperlink></TextBlock>
+  </StackPanel></ScrollViewer></PivotItem><PivotItem x:Name="SettingsPage"><ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="20" Padding="0,12">   <StackPanel Orientation="Horizontal" Spacing="8"><ComboBox x:Name="Language" Width="130" SelectionChanged="SettingsChanged"><ComboBoxItem Content="System" Tag="system"/><ComboBoxItem Content="English" Tag="en"/><ComboBoxItem Content="العربية" Tag="ar"/></ComboBox><ComboBox x:Name="Theme" Width="110" SelectionChanged="SettingsChanged"><ComboBoxItem Content="System" Tag="system"/><ComboBoxItem Content="Light" Tag="light"/><ComboBoxItem Content="Dark" Tag="dark"/></ComboBox></StackPanel>
    <Expander x:Name="AdvancedPanel" HorizontalAlignment="Stretch">
    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20">
     <StackPanel Spacing="12">
@@ -35,9 +39,7 @@
     </StackPanel>
    </Border>
    </Expander>
-   <Expander x:Name="LogsPanel" HorizontalAlignment="Stretch"><TextBox x:Name="Logs" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="150" FlowDirection="LeftToRight" FontFamily="Cascadia Mono"/></Expander>
-   <TextBlock x:Name="Credits" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"><Run Text="Mohamed Elnaggar · "/><Hyperlink NavigateUri="https://instinct.com">brought to you by Instinct</Hyperlink></TextBlock>
-  </StackPanel></ScrollViewer>
+</StackPanel></ScrollViewer></PivotItem></Pivot>
   <Grid Grid.Row="2" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button x:Name="ConnectButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Height="56" Click="ConnectClick"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon x:Name="ConnectIcon" Symbol="Link"/><TextBlock x:Name="ConnectLabel" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionTime" Text="00:00:00" Visibility="Collapsed" FlowDirection="LeftToRight" FontFamily="Cascadia Mono" VerticalAlignment="Center"/></StackPanel></Button><Button x:Name="Save" Grid.Column="1" Height="44" Click="SaveClick"/></Grid>
  </Grid>
 </Window>
