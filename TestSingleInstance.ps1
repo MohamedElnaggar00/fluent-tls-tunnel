@@ -28,7 +28,7 @@ try {
   if(!$restored){throw "Existing window was not restored from $state"}
   if(@(Get-Process FluentTlsTunnel -ErrorAction SilentlyContinue).Count -ne 1){throw 'Duplicate or missing app process'}
   if([InstanceNative]::GetForegroundWindow() -ne $handle){throw 'Existing window was not focused'}
-  Write-Host "Second launch from $state: one process, original window visible and focused"
+  Write-Host "Second launch from ${state}: one process, original window visible and focused"
  }
  $bitmap=New-Object System.Drawing.Bitmap([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width,[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height)
  $g=[System.Drawing.Graphics]::FromImage($bitmap);$g.CopyFromScreen(0,0,0,0,$bitmap.Size)
