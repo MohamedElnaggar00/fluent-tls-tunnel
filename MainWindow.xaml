@@ -2,10 +2,11 @@
  <Grid x:Name="Root" Padding="28" RowSpacing="20">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Grid ColumnSpacing="16"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <Button x:Name="AboutButton" Grid.Column="1" Click="AboutClick" VerticalAlignment="Center"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon Symbol="Help"/><TextBlock x:Name="AboutButtonLabel" Text="About"/></StackPanel></Button>
    <StackPanel Spacing="6"><TextBlock Text="Fluent TLS Tunnel" FontSize="28" FontWeight="SemiBold"/><TextBlock x:Name="Subtitle" Foreground="{ThemeResource TextFillColorSecondaryBrush}" /></StackPanel>
 
   </Grid>
-  <Pivot Grid.Row="1"><PivotItem x:Name="ConnectionPage"><ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="16">
+  <Pivot x:Name="Pages" Grid.Row="1"><PivotItem x:Name="ConnectionPage"><ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="16">
    <StackPanel Spacing="18" HorizontalAlignment="Center" Margin="0,12,0,20"><SymbolIcon Symbol="ProtectedDocument" Width="72" Height="72"/><TextBlock x:Name="HeroTitle" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock x:Name="HeroDetail" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel>
    <InfoBar x:Name="Status" IsOpen="True" IsClosable="False" Severity="Informational"/>
    <Expander x:Name="ProfilePanel" HorizontalAlignment="Stretch" IsExpanded="True">
@@ -40,6 +41,18 @@
    </Border>
    </Expander>
 </StackPanel></ScrollViewer></PivotItem></Pivot>
+<ScrollViewer x:Name="AboutPanel" Grid.Row="1" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="14" Padding="20" HorizontalAlignment="Center" MaxWidth="520">
+<Button x:Name="AboutBack" Click="AboutBackClick" HorizontalAlignment="Left"><SymbolIcon Symbol="Back"/></Button>
+<Image Source="ms-appx:///3-AppIcon.png" Width="128" Height="128"/>
+<TextBlock Text="Fluent TLS Tunnel" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+<TextBlock x:Name="VersionText" HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+<TextBlock x:Name="AboutDescription" TextWrapping="Wrap" TextAlignment="Center"/>
+<Border CornerRadius="12" Padding="20" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"><StackPanel Spacing="8">
+<TextBlock x:Name="DeveloperCredit" HorizontalAlignment="Center" FontWeight="SemiBold"/>
+<HyperlinkButton Content="brought to you by Instinct" NavigateUri="https://instinct.com" HorizontalAlignment="Center" FlowDirection="LeftToRight"/>
+<HyperlinkButton x:Name="RepositoryLink" NavigateUri="https://github.com/MohamedElnaggar00/fluent-tls-tunnel" HorizontalAlignment="Center" FlowDirection="LeftToRight"/>
+<TextBlock Text="MIT License" HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+</StackPanel></Border></StackPanel></ScrollViewer>
   <Grid Grid.Row="2" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button x:Name="ConnectButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Height="56" Click="ConnectClick"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon x:Name="ConnectIcon" Symbol="Link"/><TextBlock x:Name="ConnectLabel" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionTime" Text="00:00:00" Visibility="Collapsed" FlowDirection="LeftToRight" FontFamily="Cascadia Mono" VerticalAlignment="Center"/></StackPanel></Button><Button x:Name="Save" Grid.Column="1" Height="44" Click="SaveClick"/></Grid>
  </Grid>
 </Window>
