@@ -1,10 +1,11 @@
-# Fluent TLS Tunnel v0.1.4
+# Fluent TLS Tunnel v0.1.5
 
 ## Fixes
-- Fix the app staying in the background after the window is closed. Closing now disconnects, restores Windows routing and fully exits.
-- Fix the installer being unable to close a running copy of the app. It now stops the app before installing or uninstalling.
-- Fix white borders around the tray right-click menu. The menu now has a clean rounded edge in light and dark themes.
-- Improve connection compatibility: when a server rejects the TLS handshake, the app now retries automatically with TLS 1.2 only and then with older TLS versions, and the log shows which TLS version was used.
+- Fix Windows-wide routing stopping with "Find-NetRoute: The requested object could not be found". If Windows cannot find the endpoint route, use the available default route with the lowest combined route and interface metric.
+- Make DNS-rule cleanup safe when there are no matching rules.
+
+- Fix a second desktop launch not reopening the current session. It now restores and focuses the running window and exits the second process cleanly.
+- Ensure normal shutdown cannot leave a hidden process after the window and tray icon close.
 
 ## Downloads
 - `Fluent-TLS-Tunnel-installer.exe`: bundled-runtime installer, recommended.
