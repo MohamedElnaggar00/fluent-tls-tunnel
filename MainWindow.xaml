@@ -11,6 +11,7 @@
    <Expander x:Name="ProfilePanel" HorizontalAlignment="Stretch" IsExpanded="True">
    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20">
     <StackPanel Spacing="14">
+     <StackPanel Orientation="Horizontal" Spacing="8"><Button x:Name="Import" Click="ImportClick"/><Button x:Name="Export" Click="ExportClick"/></StackPanel>
      <TextBlock x:Name="ConnectionTitle" FontSize="18" FontWeight="SemiBold"/>
      <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="120"/></Grid.ColumnDefinitions><TextBox x:Name="Host" FlowDirection="LeftToRight"/><NumberBox x:Name="Port" Grid.Column="1" Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" FlowDirection="LeftToRight"/></Grid>
      <TextBox x:Name="Sni" FlowDirection="LeftToRight"/>
@@ -35,7 +36,6 @@
    </Border>
    </Expander>
    <Expander x:Name="LogsPanel" HorizontalAlignment="Stretch"><TextBox x:Name="Logs" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="150" FlowDirection="LeftToRight" FontFamily="Cascadia Mono"/></Expander>
-   <StackPanel Orientation="Horizontal" Spacing="8"><Button x:Name="Import" Click="ImportClick"/><Button x:Name="Export" Click="ExportClick"/></StackPanel>
    <TextBlock x:Name="Credits" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"><Run Text="Mohamed Elnaggar · "/><Hyperlink NavigateUri="https://instinct.com">brought to you by Instinct</Hyperlink></TextBlock>
   </StackPanel></ScrollViewer>
   <Grid Grid.Row="2" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button x:Name="ConnectButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Height="56" Click="ConnectClick"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon x:Name="ConnectIcon" Symbol="Link"/><TextBlock x:Name="ConnectLabel" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionTime" Text="00:00:00" Visibility="Collapsed" FlowDirection="LeftToRight" FontFamily="Cascadia Mono" VerticalAlignment="Center"/></StackPanel></Button><Button x:Name="Save" Grid.Column="1" Height="44" Click="SaveClick"/></Grid>
