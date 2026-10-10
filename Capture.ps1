@@ -6,13 +6,14 @@ using System.Runtime.InteropServices;
 public class CaptureNative {
  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr handle);
  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int width,int height,uint flags);
+ [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr handle,int attribute,out RECT rect,int size);
  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr handle, out RECT rect);
  public struct RECT { public int Left,Top,Right,Bottom; }
 }
 '@
 New-Item artifacts/screenshots -ItemType Directory -Force | Out-Null
 foreach($lang in @('en','ar')) {
-foreach($state in @('home','profile','connected','settings','updates','update-checking','update-current','update-new','update-empty','update-error','about','tray')) {
+foreach($state in @('home','profile','connected','settings','updates','update-checking','update-current','update-new','update-empty','update-error','about','about-updates','connection-actions','tray')) {
  $app=Start-Process artifacts/portable/FluentTlsTunnel.exe -ArgumentList "--preview=$lang --state=$state" -PassThru
  try {
   for($i=0;$i -lt 30;$i++) {Start-Sleep -Milliseconds 500;$app.Refresh();if($app.MainWindowHandle -ne [IntPtr]::Zero){break};if($app.HasExited){throw 'Application exited before screenshot'}}
@@ -23,7 +24,7 @@ foreach($state in @('home','profile','connected','settings','updates','update-ch
   if($state -ne 'tray'){[CaptureNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null}
   Start-Sleep -Seconds 2
   $rect=New-Object CaptureNative+RECT
-  [CaptureNative]::GetWindowRect($app.MainWindowHandle,[ref]$rect) | Out-Null
+  [CaptureNative]::DwmGetWindowAttribute($app.MainWindowHandle,9,[ref]$rect,16) | Out-Null
   $bitmap=New-Object System.Drawing.Bitmap(($rect.Right-$rect.Left),($rect.Bottom-$rect.Top))
   $g=[System.Drawing.Graphics]::FromImage($bitmap)
   $g.CopyFromScreen($rect.Left,$rect.Top,0,0,$bitmap.Size)
