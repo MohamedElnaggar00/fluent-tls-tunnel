@@ -25,6 +25,7 @@ public sealed partial class MainWindow : Window
         SystemBackdrop = new MicaBackdrop();
         var hwnd=WinRT.Interop.WindowNative.GetWindowHandle(this);
         var appWindow=AppWindow.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(hwnd));
+        appWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory,"AppIcon.ico"));
         appWindow.Resize(new Windows.Graphics.SizeInt32(820,720));
         appWindow.Closing += async (_,e) =>
         {
