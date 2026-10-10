@@ -39,7 +39,7 @@ try {
     try {
       $route=Get-NetRoute -DestinationPrefix $defPrefix -PolicyStore ActiveStore -ErrorAction Stop |
         Where-Object {$_.InterfaceAlias -ne 'Fluent_TLS_Tunnel'} |
-        Sort-Object {$_.RouteMetric + (Get-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily $_.AddressFamily -ErrorAction SilentlyContinue).InterfaceMetric} | Select-Object -First 1
+        Sort-Object { $metric=0; try { $iface=Get-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily $_.AddressFamily -ErrorAction Stop; if($iface){$metric=$iface.InterfaceMetric} } catch { }; $_.RouteMetric + $metric } | Select-Object -First 1
     } catch { $route=$null }
   }
   if(!$route){throw 'No physical route to the TLS server'}
