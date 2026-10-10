@@ -10,7 +10,8 @@ public class CaptureNative {
 '@
 New-Item artifacts/screenshots -ItemType Directory -Force | Out-Null
 foreach($lang in @('en','ar')) {
- $app=Start-Process artifacts/portable/FluentTlsTunnel.exe -ArgumentList "--preview=$lang" -PassThru
+foreach($state in @('home','profile','connected')) {
+ $app=Start-Process artifacts/portable/FluentTlsTunnel.exe -ArgumentList "--preview=$lang --state=$state" -PassThru
  try {
   for($i=0;$i -lt 30;$i++) {Start-Sleep -Milliseconds 500;$app.Refresh();if($app.MainWindowHandle -ne [IntPtr]::Zero){break};if($app.HasExited){throw 'Application exited before screenshot'}}
   if($app.MainWindowHandle -eq [IntPtr]::Zero){throw 'No application window'}
@@ -21,7 +22,9 @@ foreach($lang in @('en','ar')) {
   $bitmap=New-Object System.Drawing.Bitmap(($rect.Right-$rect.Left),($rect.Bottom-$rect.Top))
   $g=[System.Drawing.Graphics]::FromImage($bitmap)
   $g.CopyFromScreen($rect.Left,$rect.Top,0,0,$bitmap.Size)
-  $bitmap.Save((Join-Path (Get-Location) "artifacts/screenshots/$lang.png"))
+  $bitmap.Save((Join-Path (Get-Location) "artifacts/screenshots/$lang-$state.png"))
   $g.Dispose();$bitmap.Dispose()
  } finally {if(!$app.HasExited){$app.Kill();$app.WaitForExit()}}
+}
+
 }
