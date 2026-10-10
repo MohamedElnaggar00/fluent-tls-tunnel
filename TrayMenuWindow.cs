@@ -12,6 +12,8 @@ sealed class TrayMenuWindow : Window
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr h, int i);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr h, int i, IntPtr v);
 
+    bool shuttingDown;
+    public void Shutdown(){shuttingDown=true;Close();}
     readonly Border _root = new();
     readonly StackPanel _list = new() { Spacing = 2 };
     readonly IntPtr _hwnd;
@@ -32,7 +34,7 @@ sealed class TrayMenuWindow : Window
         }
         try { AppWindow.IsShownInSwitchers = false; } catch { }
         try { SystemBackdrop = new DesktopAcrylicBackdrop(); } catch { }
-        AppWindow.Closing += (a, e) => { e.Cancel = true; a.Hide(); };
+        AppWindow.Closing += (a, e) => {if(shuttingDown)return; e.Cancel = true; a.Hide(); };
         Activated += (s, e) => { if (e.WindowActivationState == WindowActivationState.Deactivated) AppWindow.Hide(); };
         long ex = (long)GetWindowLongPtr(_hwnd, -20);
         SetWindowLongPtr(_hwnd, -20, (IntPtr)(ex | 0x80));
