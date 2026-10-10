@@ -79,6 +79,14 @@ jobs:
           if(!$app.WaitForExit(15000)) {$app.Kill(); throw 'Normal app shutdown did not complete'}
           $uninstall=Start-Process "$dir/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
           if($uninstall.ExitCode -ne 0) {throw 'Uninstall failed'}
+      - name: Smoke test runtime-dependent installer detection
+        shell: pwsh
+        run: |
+          $dir=Join-Path $env:TEMP 'FluentTlsTunnelDependent'
+          $install=Start-Process artifacts/packages/Fluent-TLS-Tunnel-runtime-dependent.exe -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$dir") -Wait -PassThru
+          if($install.ExitCode -ne 0) {throw "Runtime-dependent installer rejected a machine with .NET 8 Desktop Runtime: $($install.ExitCode)"}
+          if(!(Test-Path "$dir/FluentTlsTunnel.exe")) {throw 'Runtime-dependent install files are missing'}
+          Start-Process "$dir/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait
       - name: Enforce routing test result
         if: always()
         run: if(!(Test-Path artifacts/routing-passed.txt)){throw 'Routing verification did not pass'}
