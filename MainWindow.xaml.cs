@@ -12,6 +12,7 @@ public sealed partial class MainWindow : Window
     Tunnel? tunnel;
     CancellationTokenSource? cancel;
     bool loaded, busy, closing, allowClose;
+    bool previewConnected;
     Task? connectingTask;
     readonly System.Diagnostics.Stopwatch connectedClock=new();
     readonly SemaphoreSlim stopping = new(1,1);
@@ -46,7 +47,15 @@ public sealed partial class MainWindow : Window
         heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && !tunnel.Connected) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
         heartbeat.Start();
         var preview=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--preview="));
-        if(preview!=null) { profile.Language=preview.Split('=')[1]; Language.SelectedIndex=profile.Language=="ar"?2:1; Localize(); }
+        if(preview!=null)
+        {
+            profile.Language=preview.Split('=')[1]; Language.SelectedIndex=profile.Language=="ar"?2:1;
+            var mode=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--state="))?.Split('=')[1];
+            previewConnected=mode=="connected";
+            if(mode!="profile") ProfilePanel.IsExpanded=false;
+            if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
+            Localize(); ConnectButton.IsEnabled=false;
+        }
     }
     void Localize()
     {
@@ -76,7 +85,7 @@ public sealed partial class MainWindow : Window
     }
     void SetState()
     {
-        bool connected=tunnel?.Connected==true;
+        bool connected=previewConnected || tunnel?.Connected==true;
         HeroTitle.Text=connected?T("You're connected","أنت متصل"):busy?T("Finding your private path…","جارٍ إنشاء مسارك الخاص…"):T("Ready when you are","جاهز عندما تكون مستعدًا");
         HeroDetail.Text=connected?$"{profile.Host} · SOCKS5 127.0.0.1:{profile.SocksPort}":T("Your apps. Your server. One connection.","تطبيقاتك. خادمك. اتصال واحد.");
         ConnectLabel.Text=busy?T("Cancel","إلغاء"):connected?T("Connected · Disconnect","متصل · قطع الاتصال"):T("Connect","اتصال");
@@ -92,8 +101,8 @@ public sealed partial class MainWindow : Window
             ConnectButton.ClearValue(Control.BackgroundProperty);
             ConnectButton.ClearValue(Control.ForegroundProperty);
         }
-        Status.Title=tunnel?.Connected==true?T("Connected","متصل"):busy?T("Connecting…","جارٍ الاتصال…"):T("Disconnected","غير متصل");
-        Status.Severity=tunnel?.Connected==true?InfoBarSeverity.Success:InfoBarSeverity.Informational;
+        Status.Title=connected?T("Connected","متصل"):busy?T("Connecting…","جارٍ الاتصال…"):T("Disconnected","غير متصل");
+        Status.Severity=connected?InfoBarSeverity.Success:InfoBarSeverity.Informational;
         foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns}) control.IsEnabled=!busy && tunnel==null;
     }
     Profile ReadProfile()
