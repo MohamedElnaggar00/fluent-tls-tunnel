@@ -156,14 +156,14 @@ public sealed partial class MainWindow : Window
     {
         if(!loaded)return;
         profile.Backdrop=(sender as RadioButton)?.Tag?.ToString()??"mica-alt";
-        profile.Save();Localize();
+        if(!Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview=")))profile.Save();Localize();
     }
     void SettingsChanged(object sender,SelectionChangedEventArgs e)
     {
         if(!loaded) return;
         profile.Language=(Language.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"system";
         profile.Theme=(Theme.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"system";
-        profile.Save();Localize();
+        if(!Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview=")))profile.Save();Localize();
     }
     void SetState()
     {
