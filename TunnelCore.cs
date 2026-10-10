@@ -108,7 +108,7 @@ public sealed class Profile
     public bool VerifyTls { get; set; } = true;
     public string Language { get; set; } = "system";
     public string Theme { get; set; } = "system";
-    public string DnsServers { get; set; } = "";
+    public string DnsServers { get; set; } = "1.1.1.1, 1.0.0.1";
     public int AdapterIndex { get; set; }
     public bool UseDns { get; set; }
     public Dictionary<string,string> HostKeys { get; set; } = new();
