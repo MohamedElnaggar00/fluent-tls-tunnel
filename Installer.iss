@@ -24,6 +24,7 @@ OutputBaseFilename=Fluent-TLS-Tunnel-{#Flavor}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=AppIcon.ico
 DisableProgramGroupPage=yes
 LicenseFile=LICENSE
 CloseApplications=yes
