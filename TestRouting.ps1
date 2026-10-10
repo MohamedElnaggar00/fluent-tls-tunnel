@@ -47,7 +47,7 @@ foreach($mode in @('empty','throws')) {
   if(Test-Path "$session/error.txt"){throw (Get-Content "$session/error.txt" -Raw)}
   Start-Sleep -Seconds 2
   if($before -ne (Snapshot)){throw "Fallback $mode changed original route/DNS state"}
-  "PASS Find-NetRoute $mode: default-route fallback starts and restores exactly"|Tee-Object artifacts/routing-tests.txt -Append
+  "PASS Find-NetRoute ${mode}: default-route fallback starts and restores exactly"|Tee-Object artifacts/routing-tests.txt -Append
  } finally {if(!$owner.HasExited){Stop-Process -Id $owner.Id -Force};if($helper -and !$helper.HasExited){Set-Content "$session/stop" stop;$helper.WaitForExit(20000)|Out-Null}}
 }
 # Recovery journal can refer to a rule already removed. No NRPT result must be harmless.
