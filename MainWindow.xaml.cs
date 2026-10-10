@@ -44,7 +44,10 @@ public sealed partial class MainWindow : Window
             closing=true;
             try {if(busy){cancel?.Cancel();if(connectionFinished!=null)await connectionFinished.Task;} await StopAsync(); }
             catch(Exception ex) { Log(ex.Message); closing=false; return; }
-            tray?.Dispose();trayMenu?.Shutdown();allowClose=true; Close(); Task.Run(async()=>{await Task.Delay(1500);Environment.Exit(0);});
+            heartbeat.Stop();
+            // Arm the final process exit before closing the last UI surface.
+            _=Task.Run(async()=>{await Task.Delay(1500);Environment.Exit(0);});
+            tray?.Dispose();trayMenu?.Shutdown();allowClose=true; Close();
         };
         Host.Text=profile.Host; Port.Value=profile.Port; Sni.Text=profile.Sni; Username.Text=profile.Username;
         RouteWindows.IsChecked=profile.RouteWindows; Password.Password=PasswordStore.Load(profile);
@@ -60,7 +63,7 @@ public sealed partial class MainWindow : Window
         if(!Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview=")))
         {
             trayMenu=new TrayMenuWindow(TrayCommand);
-            tray=new TrayIcon(hwnd,Path.Combine(AppContext.BaseDirectory,"1-AppIcon.ico"),Array.Empty<(int,string)>(),()=>{appWindow.Show();Activate();},TrayCommand,(x,y)=>{trayMenu.ShowAt(x,y,profile.Theme,Arabic,tunnel?.Connected==true,busy);return true;}){NativeTip=true};
+            tray=new TrayIcon(hwnd,Path.Combine(AppContext.BaseDirectory,"1-AppIcon.ico"),Array.Empty<(int,string)>(),()=>ActivateExisting(),TrayCommand,(x,y)=>{trayMenu.ShowAt(x,y,profile.Theme,Arabic,tunnel?.Connected==true,busy);return true;}){NativeTip=true};
             tray.SetTip("Fluent TLS Tunnel");
         }
         if(DnsManager.Pending) { Status.Severity=InfoBarSeverity.Warning; Status.Message=T("A DNS backup is pending. Restore DNS before a new connection.","توجد نسخة احتياطية لإعدادات DNS. استعد الإعدادات قبل اتصال جديد."); }
@@ -103,6 +106,15 @@ public sealed partial class MainWindow : Window
                 var showMenu=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};showMenu.Tick+=(_,_)=>{showMenu.Stop();trayMenu.ShowAt(700,650,profile.Theme,Arabic,false,false);trayMenu.AppWindow.Move(new Windows.Graphics.PointInt32(AppWindow.Position.X+AppWindow.Size.Width-250,AppWindow.Position.Y+AppWindow.Size.Height-210));};showMenu.Start();
             }
         }
+    }
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hwnd);
+    public void ActivateExisting()
+    {
+        if(allowClose)return;
+        AppWindow.Show();
+        if(AppWindow.Presenter is OverlappedPresenter p && p.State==OverlappedPresenterState.Minimized)p.Restore();
+        Activate();
+        SetForegroundWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
     }
     void MinimizeCaptionClick(object sender,RoutedEventArgs e){if(AppWindow.Presenter is OverlappedPresenter p)p.Minimize();}
     void MaximizeCaptionClick(object sender,RoutedEventArgs e){if(AppWindow.Presenter is OverlappedPresenter p){if(p.State==OverlappedPresenterState.Maximized)p.Restore();else p.Maximize();UpdateCaptionGlyph();}}
