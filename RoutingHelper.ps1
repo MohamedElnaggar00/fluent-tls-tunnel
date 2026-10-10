@@ -13,8 +13,8 @@ $engine=$null
 $state=@{Routes=@(); Rule=$null; Tag=$null; EngineId=0; EngineTicks=0; Adapter='Fluent TLS Tunnel'}
 function Save-State { $tmp=$journal+'.tmp';$state|ConvertTo-Json -Depth 8|Set-Content $tmp; Move-Item $tmp $journal -Force }
 function Cleanup($old) {
-  if($old.Tag){Get-DnsClientNrptRule -ErrorAction SilentlyContinue | Where-Object Comment -eq $old.Tag | Remove-DnsClientNrptRule -Force}
-  if($old.Rule){Get-DnsClientNrptRule -ErrorAction SilentlyContinue | Where-Object Name -eq $old.Rule | Remove-DnsClientNrptRule -Force}
+  if($old.Tag){@(Get-DnsClientNrptRule -ErrorAction SilentlyContinue) | Where-Object Comment -eq $old.Tag | Remove-DnsClientNrptRule -Force}
+  if($old.Rule){@(Get-DnsClientNrptRule -ErrorAction SilentlyContinue) | Where-Object Name -eq $old.Rule | Remove-DnsClientNrptRule -Force}
   foreach($r in $old.Routes){Get-NetRoute -DestinationPrefix $r.Prefix -InterfaceIndex $r.Index -PolicyStore ActiveStore -ErrorAction SilentlyContinue | Where-Object NextHop -eq $r.Hop | Remove-NetRoute -Confirm:$false}
   if($old.EngineId){$p=Get-Process -Id $old.EngineId -ErrorAction SilentlyContinue; if($p -and $p.StartTime.ToUniversalTime().Ticks -eq $old.EngineTicks){Stop-Process -Id $p.Id -Force}}
   Clear-DnsClientCache
@@ -31,7 +31,17 @@ try {
   if(Get-NetAdapter -Name 'Fluent_TLS_Tunnel' -ErrorAction SilentlyContinue){throw 'A tunnel adapter is already present. Do not overwrite another session.'}
   # Preserve existing corporate/split DNS policy rather than silently overriding it.
   if(Get-DnsClientNrptRule -ErrorAction SilentlyContinue){throw 'Existing Windows DNS policy detected. Automatic routing cannot safely replace it.'}
-  $route=Find-NetRoute -RemoteIPAddress $ip.ToString() | Where-Object {$_.PSObject.Properties.Name -contains 'NextHop'} | Select-Object -First 1
+  # Find-NetRoute throws "The requested object could not be found" on some systems; fall back to the best default route.
+  $route=$null
+  try { $route=Find-NetRoute -RemoteIPAddress $ip.ToString() -ErrorAction Stop | Where-Object {$_.PSObject.Properties.Name -contains 'NextHop' -and $_.NextHop} | Select-Object -First 1 } catch { $route=$null }
+  if(!$route){
+    $defPrefix=if($ip.AddressFamily -eq 'InterNetwork'){'0.0.0.0/0'}else{'::/0'}
+    try {
+      $route=Get-NetRoute -DestinationPrefix $defPrefix -PolicyStore ActiveStore -ErrorAction Stop |
+        Where-Object {$_.InterfaceAlias -ne 'Fluent_TLS_Tunnel'} |
+        Sort-Object {$_.RouteMetric + (Get-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily $_.AddressFamily -ErrorAction SilentlyContinue).InterfaceMetric} | Select-Object -First 1
+    } catch { $route=$null }
+  }
   if(!$route){throw 'No physical route to the TLS server'}
   Save-State
   $prefix=$ip.ToString()+$(if($ip.AddressFamily -eq 'InterNetwork'){ '/32' }else{'/128'})
