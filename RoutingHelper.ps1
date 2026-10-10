@@ -61,15 +61,15 @@ try {
   $usable=$false
   for($i=0;$i -lt 100;$i++){
     $engine.Refresh();if($engine.HasExited){throw 'Routing engine exited during address setup'}
-    $addresses=@(Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -PolicyStore ActiveStore)
+    $addresses=@(Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -PolicyStore ActiveStore -ErrorAction SilentlyContinue)
     $v4=$addresses|Where-Object {$_.IPAddress -eq '198.18.0.1' -and $_.AddressState -eq 'Preferred'}
     $v6=$addresses|Where-Object {$_.IPAddress -eq 'fd7a:115c:a1e0::1' -and $_.AddressState -eq 'Preferred'}
     if($v4 -and ($v6 -or -not $v6ok)){$usable=$true;break}
     Start-Sleep -Milliseconds 200
   }
   if(!$usable){throw 'Tunnel IP addresses did not become usable'}
-  Get-NetIPAddress -InterfaceIndex $adapter.ifIndex | Format-List | Out-File (Join-Path $Session 'routing-state.txt')
-  Get-NetRoute -InterfaceIndex $adapter.ifIndex | Format-Table -AutoSize | Out-File (Join-Path $Session 'routing-state.txt') -Append
+  Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -ErrorAction SilentlyContinue | Format-List | Out-File (Join-Path $Session 'routing-state.txt')
+  Get-NetRoute -InterfaceIndex $adapter.ifIndex -ErrorAction SilentlyContinue | Format-Table -AutoSize | Out-File (Join-Path $Session 'routing-state.txt') -Append
   $tag='FluentTlsTunnel-'+[guid]::NewGuid().ToString()
   $state.Tag=$tag;Save-State
   $rule=Add-DnsClientNrptRule -Namespace '.' -NameServers '127.0.0.1' -Comment $tag -PassThru
