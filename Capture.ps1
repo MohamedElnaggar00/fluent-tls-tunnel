@@ -10,7 +10,7 @@ public class CaptureNative {
 '@
 New-Item artifacts/screenshots -ItemType Directory -Force | Out-Null
 foreach($lang in @('en','ar')) {
-foreach($state in @('home','profile','connected')) {
+foreach($state in @('home','profile','connected','settings','about')) {
  $app=Start-Process artifacts/portable/FluentTlsTunnel.exe -ArgumentList "--preview=$lang --state=$state" -PassThru
  try {
   for($i=0;$i -lt 30;$i++) {Start-Sleep -Milliseconds 500;$app.Refresh();if($app.MainWindowHandle -ne [IntPtr]::Zero){break};if($app.HasExited){throw 'Application exited before screenshot'}}
