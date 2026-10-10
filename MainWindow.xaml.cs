@@ -84,13 +84,13 @@ public sealed partial class MainWindow : Window
         ConnectionTime.Visibility=connected?Visibility.Visible:Visibility.Collapsed; UpdateClock();
         if(connected)
         {
-            Connect.Background=new SolidColorBrush(Windows.UI.Color.FromArgb(255,24,112,55));
-            Connect.Foreground=new SolidColorBrush(Colors.White);
+            ConnectButton.Background=new SolidColorBrush(Windows.UI.Color.FromArgb(255,24,112,55));
+            ConnectButton.Foreground=new SolidColorBrush(Colors.White);
         }
         else
         {
-            Connect.ClearValue(Control.BackgroundProperty);
-            Connect.ClearValue(Control.ForegroundProperty);
+            ConnectButton.ClearValue(Control.BackgroundProperty);
+            ConnectButton.ClearValue(Control.ForegroundProperty);
         }
         Status.Title=tunnel?.Connected==true?T("Connected","متصل"):busy?T("Connecting…","جارٍ الاتصال…"):T("Disconnected","غير متصل");
         Status.Severity=tunnel?.Connected==true?InfoBarSeverity.Success:InfoBarSeverity.Informational;
