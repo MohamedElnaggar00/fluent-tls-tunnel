@@ -30,7 +30,7 @@ try {
   if($Owner -eq 0){return}
   if(Get-NetAdapter -Name 'Fluent_TLS_Tunnel' -ErrorAction SilentlyContinue){throw 'A tunnel adapter is already present. Do not overwrite another session.'}
   # Preserve existing corporate/split DNS policy rather than silently overriding it.
-  if(Get-DnsClientNrptRule){throw 'Existing Windows DNS policy detected. Automatic routing cannot safely replace it.'}
+  if(Get-DnsClientNrptRule -ErrorAction SilentlyContinue){throw 'Existing Windows DNS policy detected. Automatic routing cannot safely replace it.'}
   $route=Find-NetRoute -RemoteIPAddress $ip.ToString() | Where-Object {$_.PSObject.Properties.Name -contains 'NextHop'} | Select-Object -First 1
   if(!$route){throw 'No physical route to the TLS server'}
   Save-State
@@ -43,12 +43,20 @@ try {
   for($i=0;$i -lt 100;$i++){if($engine.HasExited){throw ('TUN engine stopped: '+(Get-Content (Join-Path $Session 'engine-error.txt') -Raw -ErrorAction SilentlyContinue)+(Get-Content (Join-Path $Session 'engine-output.txt') -Raw -ErrorAction SilentlyContinue))};$adapter=Get-NetAdapter -Name 'Fluent_TLS_Tunnel' -ErrorAction SilentlyContinue;if($adapter){break};Start-Sleep -Milliseconds 100}
   if(!$adapter){throw 'Windows did not create the tunnel adapter'}
   New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress 198.18.0.1 -PrefixLength 30 -PolicyStore ActiveStore | Out-Null
-  New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress fd7a:115c:a1e0::1 -PrefixLength 64 -PolicyStore ActiveStore | Out-Null
-  Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -AutomaticMetric Disabled -InterfaceMetric 1
+  Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -AutomaticMetric Disabled -InterfaceMetric 1
   Add-OwnedRoute '0.0.0.0/1' $adapter.ifIndex '0.0.0.0'
   Add-OwnedRoute '128.0.0.0/1' $adapter.ifIndex '0.0.0.0'
-  Add-OwnedRoute '::/1' $adapter.ifIndex '::'
-  Add-OwnedRoute '8000::/1' $adapter.ifIndex '::'
+  # IPv6 is optional: some systems have it disabled or unbound, and Windows then reports a missing object.
+  $v6ok=$true
+  try {
+    New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress fd7a:115c:a1e0::1 -PrefixLength 64 -PolicyStore ActiveStore | Out-Null
+    Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -AddressFamily IPv6 -AutomaticMetric Disabled -InterfaceMetric 1
+    Add-OwnedRoute '::/1' $adapter.ifIndex '::'
+    Add-OwnedRoute '8000::/1' $adapter.ifIndex '::'
+  } catch {
+    $v6ok=$false
+    Set-Content (Join-Path $Session 'warning.txt') ('IPv6 routing skipped: '+$_.Exception.Message)
+  }
   # New addresses remain Tentative until Windows duplicate-address detection completes.
   $usable=$false
   for($i=0;$i -lt 100;$i++){
@@ -56,7 +64,7 @@ try {
     $addresses=@(Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -PolicyStore ActiveStore)
     $v4=$addresses|Where-Object {$_.IPAddress -eq '198.18.0.1' -and $_.AddressState -eq 'Preferred'}
     $v6=$addresses|Where-Object {$_.IPAddress -eq 'fd7a:115c:a1e0::1' -and $_.AddressState -eq 'Preferred'}
-    if($v4 -and $v6){$usable=$true;break}
+    if($v4 -and ($v6 -or -not $v6ok)){$usable=$true;break}
     Start-Sleep -Milliseconds 200
   }
   if(!$usable){throw 'Tunnel IP addresses did not become usable'}
@@ -74,7 +82,7 @@ try {
     $engine.Refresh();if($engine.HasExited){throw 'Tunnel routing engine stopped'}
     Start-Sleep -Milliseconds 250
   }
-} catch {Set-Content (Join-Path $Session 'error.txt') $_.Exception.Message}
+} catch {Set-Content (Join-Path $Session 'error.txt') ($_.InvocationInfo.MyCommand.Name+': '+$_.Exception.Message)}
 finally {
   try {
     # Recovery also catches a crash between adding the DNS rule and saving its name.
