@@ -79,6 +79,20 @@ jobs:
           if(!$app.WaitForExit(15000)) {$app.Kill(); throw 'Normal app shutdown did not complete'}
           $uninstall=Start-Process "$dir/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
           if($uninstall.ExitCode -ne 0) {throw 'Uninstall failed'}
+      - name: Launch runtime-dependent build with only .NET 8.0.0 installed
+        shell: pwsh
+        run: |
+          Get-Content artifacts/dependent/FluentTlsTunnel.runtimeconfig.json
+          $root=Join-Path $env:TEMP 'dotnet8only'
+          Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+          ./dotnet-install.ps1 -Runtime dotnet -Version 8.0.0 -InstallDir $root -Architecture x64
+          ./dotnet-install.ps1 -Runtime windowsdesktop -Version 8.0.0 -InstallDir $root -Architecture x64
+          $env:DOTNET_ROOT=$root; $env:DOTNET_ROOT_X64=$root; $env:DOTNET_MULTILEVEL_LOOKUP='0'
+          $app=Start-Process artifacts/dependent/FluentTlsTunnel.exe -ArgumentList '--preview=en --state=about' -PassThru
+          for($i=0;$i -lt 40;$i++) {Start-Sleep -Milliseconds 500; $app.Refresh(); if($app.MainWindowHandle -ne [IntPtr]::Zero){break}; if($app.HasExited){throw "Runtime-dependent app exited with code $($app.ExitCode) on a machine with only .NET 8.0.0"}}
+          if($app.MainWindowHandle -eq [IntPtr]::Zero){throw 'Runtime-dependent app did not open a window'}
+          $app.CloseMainWindow() | Out-Null
+          if(!$app.WaitForExit(15000)) {$app.Kill(); throw 'App did not exit after closing its window'}
       - name: Smoke test runtime-dependent installer detection
         shell: pwsh
         run: |
