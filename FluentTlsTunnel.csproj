@@ -9,7 +9,8 @@
   <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><Version>0.1.1</Version>
   <Product>Fluent TLS Tunnel</Product><Authors>Mohamed Elnaggar</Authors>
  </PropertyGroup>
- <ItemGroup><Compile Remove="Core/**/*.cs;Tests/**/*.cs;TunnelCore.cs;CoreTests.cs;ConfigCrypto.cs" /><Page Remove="Tests/**/*.xaml" /></ItemGroup>
+ <ItemGroup><Compile Remove="Core/**/*.cs;Tests/**/*.cs;TunnelCore.cs;CoreTests.cs;RoutingTests.cs;ConfigCrypto.cs" /><Page Remove="Tests/**/*.xaml" /></ItemGroup>
  <ItemGroup><ProjectReference Include="TunnelCore.csproj" /><PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250108002" /></ItemGroup>
+ <ItemGroup><Content Include="Routing/**/*;RoutingHelper.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
  <ItemGroup><Content Include="3-AppIcon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><Content Include="1-AppIcon.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
 </Project>

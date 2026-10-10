@@ -10,6 +10,10 @@ public sealed partial class MainWindow : Window
 {
     Profile profile = Profile.Load();
     Tunnel? tunnel;
+    WindowsRouting? routing;
+    TrayIcon? tray;
+    TrayMenuWindow? trayMenu;
+    bool exitRequested;
     CancellationTokenSource? cancel;
     bool loaded, busy, closing, allowClose;
     bool previewConnected;
@@ -23,31 +27,42 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         SystemBackdrop = new MicaBackdrop();
+        ExtendsContentIntoTitleBar=true;SetTitleBar(AppTitleBar);
         var hwnd=WinRT.Interop.WindowNative.GetWindowHandle(this);
         var appWindow=AppWindow.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(hwnd));
         appWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory,"1-AppIcon.ico"));
-        appWindow.Resize(new Windows.Graphics.SizeInt32(820,720));
+        var area=DisplayArea.GetFromWindowId(appWindow.Id,DisplayAreaFallback.Primary).WorkArea;
+        appWindow.Resize(new Windows.Graphics.SizeInt32(Math.Min(1120,area.Width-60),Math.Min(940,area.Height-60)));
         appWindow.Closing += async (_,e) =>
         {
             if(allowClose) return;
             e.Cancel=true;
+            if(!exitRequested && !Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview="))) {appWindow.Hide();return;}
             if(closing) return;
             closing=true;
             try { await StopAsync(); }
             catch(Exception ex) { Log(ex.Message); closing=false; return; }
-            allowClose=true; Close();
+            tray?.Dispose();allowClose=true; Close();
         };
         Host.Text=profile.Host; Port.Value=profile.Port; Sni.Text=profile.Sni; Username.Text=profile.Username;
+        RouteWindows.IsChecked=profile.RouteWindows; Password.Password=PasswordStore.Load(profile);
         SocksPort.Value=profile.SocksPort; VerifyTls.IsChecked=profile.VerifyTls; Dns.Text=profile.DnsServers; UseDns.IsChecked=profile.UseDns;
         foreach(var a in DnsManager.Adapters()) Adapter.Items.Add(a);
         Adapter.SelectedItem=Adapter.Items.Cast<DnsManager.AdapterInfo>().FirstOrDefault(a=>a.Index==profile.AdapterIndex);
+        Host.LostFocus+=(_,_)=>RefreshPassword();Username.LostFocus+=(_,_)=>RefreshPassword();Port.LostFocus+=(_,_)=>RefreshPassword();
         Language.SelectedIndex=profile.Language switch {"en"=>1,"ar"=>2,_=>0};
         Theme.SelectedIndex=profile.Theme switch {"light"=>1,"dark"=>2,_=>0};
         Nav.SelectedItem=ConnectionNav;
-        loaded=true; AdvancedPanel.IsExpanded=true; Localize(); ProfilePanel.IsExpanded=string.IsNullOrWhiteSpace(profile.Host);
+        loaded=true; Localize();
+        if(!Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview=")))
+        {
+            trayMenu=new TrayMenuWindow(TrayCommand);
+            tray=new TrayIcon(hwnd,Path.Combine(AppContext.BaseDirectory,"1-AppIcon.ico"),Array.Empty<(int,string)>(),()=>{appWindow.Show();Activate();},TrayCommand,(x,y)=>{trayMenu.ShowAt(x,y,profile.Theme,Arabic,tunnel?.Connected==true,busy);return true;}){NativeTip=true};
+            tray.SetTip("Fluent TLS Tunnel");
+        }
         if(DnsManager.Pending) { Status.Severity=InfoBarSeverity.Warning; Status.Message=T("A DNS backup is pending. Restore DNS before a new connection.","توجد نسخة احتياطية لإعدادات DNS. استعد الإعدادات قبل اتصال جديد."); }
         Status.RegisterPropertyChangedCallback(InfoBar.MessageProperty,(_,_)=>Status.IsOpen=!string.IsNullOrEmpty(Status.Message));
-        heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && !tunnel.Connected) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
+        heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && (!tunnel.Connected || (routing!=null && !routing.Healthy))) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
         heartbeat.Start();
         var preview=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--preview="));
         if(preview!=null)
@@ -57,7 +72,7 @@ public sealed partial class MainWindow : Window
             previewConnected=mode=="connected";
             if(mode=="settings") Nav.SelectedItem=SettingsNav;
             if(mode=="about") Nav.SelectedItem=AboutNav;
-            if(mode!="profile") ProfilePanel.IsExpanded=false;
+
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
             Localize();
         }
@@ -74,23 +89,25 @@ public sealed partial class MainWindow : Window
     {
         Root.FlowDirection=Arabic?FlowDirection.RightToLeft:FlowDirection.LeftToRight;
         Root.RequestedTheme=profile.Theme switch {"light"=>ElementTheme.Light,"dark"=>ElementTheme.Dark,_=>ElementTheme.Default};
+        ProfileGroup.Text=T("CONNECTION PROFILE","إعدادات الاتصال");SettingsTitle.Text=T("Settings","الإعدادات");AppearanceGroup.Text=T("APPEARANCE AND LANGUAGE","المظهر واللغة");RoutingGroup.Text=T("ROUTING AND DNS","التوجيه وDNS");
         ConnectionNav.Content=T("Connection","الاتصال"); SettingsNav.Content=T("Settings","الإعدادات"); AboutNav.Content=T("About","حول التطبيق");
         VersionText.Text="v" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
-        AboutDescription.Text=T("A Fluent Windows SSH-over-TLS client with SNI and a local SOCKS5 proxy. This is not a full-device VPN.","عميل SSH عبر TLS لواجهة ويندوز Fluent، مع SNI ووكيل SOCKS5 محلي. ليس شبكة VPN للجهاز بالكامل.");
+        AboutDescription.Text=T("SSH over TLS with SNI, automatic Windows TCP routing and a local SOCKS5 proxy. UDP is not supported.","SSH عبر TLS مع SNI وتوجيه TCP تلقائي لويندوز ووكيل SOCKS5 محلي. لا يُدعم UDP.");
         DeveloperCredit.Text=T("Developed by Mohamed Elnaggar","تطوير محمد النجار");
         RepositoryLink.Content="GitHub Repo Link";
         Language.Header=T("Language","اللغة"); Theme.Header=T("Appearance","المظهر");
-        Subtitle.Text=T("A private path. One simple connection.","مسار خاص. اتصال بسيط.");
-        ProfilePanel.Header=T("Connection profile","إعدادات الاتصال"); AdvancedPanel.Header=T("Advanced · DNS & routing","خيارات متقدمة · DNS والتوجيه");
+        Subtitle.Text=T("Connection","الاتصال");
+        RouteWindows.Content=T("Route Windows traffic automatically (administrator permission)","توجيه اتصال ويندوز تلقائيًا (يتطلب صلاحية المسؤول)");
         ConnectionTitle.Text=T("Server & authentication","الخادم والمصادقة"); Host.Header=T("Server","الخادم"); Port.Header=T("Port","المنفذ"); Sni.Header="SNI";
-        Username.Header=T("SSH username","اسم مستخدم SSH"); Password.Header=T("Password (not saved)","كلمة المرور (لا تُحفظ)");
+        Username.Header=T("SSH username","اسم مستخدم SSH"); Password.Header=T("Password (saved securely)","كلمة المرور (تُحفظ بأمان)");
         VerifyTls.Content=T("Verify TLS certificate (recommended)","التحقق من شهادة TLS (موصى به)");
         TlsHint.Text=T("Some SSH-over-TLS services require this off. SSH host keys are still checked; disabling TLS verification weakens protection.","تتطلب بعض الخدمات تعطيل هذا الخيار. يستمر التحقق من مفتاح SSH، لكن تعطيل التحقق من TLS يقلل الحماية.");
         RoutingTitle.Text=T("Routing & DNS","التوجيه وDNS"); SocksPort.Header=T("Local SOCKS5 port","منفذ SOCKS5 المحلي");
-        ProxyHint.Text=T("SOCKS5 on 127.0.0.1. Configure Firefox or another SOCKS-aware app. This is not a full-device VPN; other traffic is unchanged.","يعمل SOCKS5 على 127.0.0.1. اضبط Firefox أو تطبيقًا يدعم SOCKS. ليس شبكة VPN للجهاز بالكامل؛ لا يتغير توجيه بقية التطبيقات.");
+        ProxyHint.Text=T("Automatic mode routes Windows TCP traffic through a virtual adapter. DNS goes through SSH. UDP apps are not supported; Windows VPN badges are not registered. Turn it off to use SOCKS5 manually.","يوجّه الوضع التلقائي اتصال TCP في ويندوز عبر محول افتراضي، وDNS عبر SSH. لا تُدعم تطبيقات UDP، ولا يُسجّل مؤشر VPN الرسمي. عطّله لاستخدام SOCKS5 يدويًا.");
         UseDns.Content=T("Use custom DNS while connected (administrator permission)","استخدام DNS مخصص أثناء الاتصال (يتطلب صلاحية المسؤول)");
         Adapter.Header=T("Network adapter","محول الشبكة"); Dns.Header=T("DNS server IP addresses","عناوين IP لخوادم DNS");
         DnsHint.Text=T("Changes the selected Windows adapter, not remote SOCKS DNS. The old settings are backed up and restored on disconnect. After a crash, use Restore DNS. Windows asks for administrator approval each time.","يغيّر محول ويندوز المحدد، لا DNS البعيد في SOCKS. تُحفظ الإعدادات السابقة وتُستعاد عند قطع الاتصال. بعد تعطل التطبيق، اضغط استعادة DNS. يطلب ويندوز موافقة المسؤول لكل تغيير.");
+        RestoreRouting.Content=T("Restore Windows routing","استعادة توجيه ويندوز");
         RestoreDns.Content=T("Restore DNS","استعادة DNS"); LogsPanel.Header=T("Connection log","سجل الاتصال");
         Import.Content=T("Import config","استيراد إعدادات"); Export.Content=T("Export config","تصدير إعدادات");
         Save.Content=T("Save profile","حفظ الإعدادات"); SetState();
@@ -106,20 +123,22 @@ public sealed partial class MainWindow : Window
     {
         bool connected=previewConnected || tunnel?.Connected==true;
         HeroTitle.Text=connected?T("Connected","متصل"):busy?T("Finding your private path…","جارٍ إنشاء مسارك الخاص…"):T("Ready when you are","جاهز عندما تكون مستعدًا");
-        HeroDetail.Text=connected?$"{profile.Host} · SOCKS5 127.0.0.1:{profile.SocksPort}":T("Your apps. Your server. One connection.","تطبيقاتك. خادمك. اتصال واحد.");
+        HeroDetail.Text=connected?(profile.RouteWindows?T("Windows TCP routing active · DNS through SSH","توجيه TCP في ويندوز نشط · DNS عبر SSH"):$"{profile.Host} · SOCKS5 127.0.0.1:{profile.SocksPort}"):T("Your apps. Your server. One connection.","تطبيقاتك. خادمك. اتصال واحد.");
         ConnectLabel.Text=busy?T("Cancel","إلغاء"):connected?T("Disconnect","قطع الاتصال"):T("Connect","اتصال");
         ConnectIcon.Symbol=connected?Symbol.Accept:busy?Symbol.Cancel:Symbol.Link;
         ConnectionTime.Visibility=connected?Visibility.Visible:Visibility.Collapsed; UpdateClock();
         StatusGlyph.Glyph=connected?"\uE73E":"\uE72E";
         if(connected) StatusGlyph.Foreground=(Brush)Application.Current.Resources["SystemFillColorSuccessBrush"]; else StatusGlyph.ClearValue(FontIcon.ForegroundProperty);
         Status.Severity=connected?InfoBarSeverity.Success:InfoBarSeverity.Informational;
-        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns}) control.IsEnabled=!busy && tunnel==null;
+        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns,RestoreRouting,RouteWindows}) control.IsEnabled=!busy && tunnel==null;
     }
     Profile ReadProfile()
     {
         profile.Host=Host.Text.Trim(); profile.Port=checked((int)Port.Value); profile.Sni=Sni.Text.Trim(); profile.Username=Username.Text.Trim();
+        profile.RouteWindows=RouteWindows.IsChecked==true;
         profile.SocksPort=checked((int)SocksPort.Value); profile.VerifyTls=VerifyTls.IsChecked==true; profile.UseDns=UseDns.IsChecked==true;
         profile.DnsServers=Dns.Text.Trim(); profile.AdapterIndex=(Adapter.SelectedItem as DnsManager.AdapterInfo)?.Index??0;
+        if(profile.RouteWindows)profile.UseDns=false;
         profile.Validate(); return profile;
     }
     void Log(string message) => DispatcherQueue.TryEnqueue(()=>
@@ -153,15 +172,16 @@ public sealed partial class MainWindow : Window
             var p=ReadProfile();
             if(DnsManager.Pending) throw new InvalidOperationException(T("Restore the pending DNS backup first.","استعد إعدادات DNS السابقة أولًا."));
             if(Password.Password.Length==0) throw new ArgumentException(T("Enter your password.","أدخل كلمة المرور."));
-            p.Save(); busy=true; Status.Message=""; cancel=new(); tunnel=new(); SetState();
+            PasswordStore.Save(p,Password.Password);p.Save(); busy=true; Status.Message=""; cancel=new(); tunnel=new(); SetState();
             var password = Password.Password;
             connectingTask=Task.Run(()=>tunnel.ConnectAsync(p,password,ConfirmKey,Log,cancel.Token));
             await connectingTask;
             cancel.Token.ThrowIfCancellationRequested();
-            if(p.UseDns) await DnsManager.ApplyAsync(p.AdapterIndex,Profile.ParseDns(p.DnsServers));
-            connectedClock.Restart(); ProfilePanel.IsExpanded=false; AdvancedPanel.IsExpanded=true; ShowConnectedNotification();
-            Password.Password="";
-            Status.Message=$"SOCKS5 · 127.0.0.1:{p.SocksPort}";
+            if(p.RouteWindows){routing=new();await routing.StartAsync(tunnel.RemoteAddress??throw new InvalidOperationException("TLS endpoint unavailable"),p.SocksPort,cancel.Token);}
+            if(p.UseDns && !p.RouteWindows) await DnsManager.ApplyAsync(p.AdapterIndex,Profile.ParseDns(p.DnsServers));
+            connectedClock.Restart(); ShowConnectedNotification();
+
+            Status.Message=p.RouteWindows?T("Windows TCP routing is active. UDP is not supported.","توجيه TCP في ويندوز نشط. لا يُدعم UDP."):$"SOCKS5 · 127.0.0.1:{p.SocksPort}";
         }
         catch(Exception ex) { Log(ex.Message); try { await StopAsync(); } catch(Exception restore) { Log(restore.Message); } Status.Message=ex.Message; }
         finally { busy=false; connectingTask=null; SetState(); }
@@ -173,13 +193,15 @@ public sealed partial class MainWindow : Window
         await stopping.WaitAsync();
         try
         {
+            if(routing!=null){await routing.DisposeAsync();routing=null;}
             if(tunnel!=null) { await Task.Run(async ()=>await tunnel.DisposeAsync()); tunnel=null; }
             if(DnsManager.Pending) await DnsManager.RestoreAsync();
             cancel?.Dispose(); cancel=null; connectedClock.Reset(); SetState();
         }
         finally { stopping.Release(); }
     }
-    void SaveClick(object sender,RoutedEventArgs e) { try { ReadProfile().Save(); Status.Message=T("Profile saved. Passwords are never saved.","حُفظت الإعدادات. لا تُحفظ كلمات المرور."); } catch(Exception ex) { Status.Message=ex.Message; } }
+    void SaveClick(object sender,RoutedEventArgs e) { try { var p=ReadProfile();PasswordStore.Save(p,Password.Password);p.Save(); Status.Message=T("Profile and password saved securely.","حُفظت الإعدادات وكلمة المرور بأمان."); } catch(Exception ex) { Status.Message=ex.Message; } }
+    async void RestoreRoutingClick(object sender,RoutedEventArgs e){try{await WindowsRouting.RestoreAsync();Status.Message=T("Windows routing restored.","استُعيد توجيه ويندوز.");}catch(Exception ex){Status.Message=ex.Message;}}
     async void RestoreDnsClick(object sender,RoutedEventArgs e) { try { await DnsManager.RestoreAsync(); Status.Message=T("Previous DNS settings restored.","استُعيدت إعدادات DNS السابقة."); } catch(Exception ex) { Status.Message=ex.Message; } }
     async void ExportClick(object sender,RoutedEventArgs e)
     {
@@ -208,11 +230,11 @@ public sealed partial class MainWindow : Window
             var content=await Windows.Storage.FileIO.ReadTextAsync(file);
             string? secret=null; if(ConfigCrypto.Encrypted(content)) {var answer=await ImportPassword(); if(answer==null) return; secret=answer;}
             var p=ConfigCrypto.Decode(content,secret);
-            p.UseDns=false; p.AdapterIndex=0; p.Validate(); Profile.ParseDns(p.DnsServers);
+            p.UseDns=false; p.AdapterIndex=0; p.RouteWindows=false; p.Validate(); Profile.ParseDns(p.DnsServers);
             var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Import these settings?","هل تريد استيراد هذه الإعدادات؟"),Content=$"{p.Host}:{p.Port}\nSNI: {p.Sni}\nSSH: {p.Username}\nSOCKS: {p.SocksPort}\nDNS: {p.DnsServers}",PrimaryButtonText=T("Import","استيراد"),CloseButtonText=T("Cancel","إلغاء"),DefaultButton=ContentDialogButton.Close};
             if(await dialog.ShowAsync()!=ContentDialogResult.Primary) return;
             Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;Dns.Text=p.DnsServers;UseDns.IsChecked=false;
-            Password.Password="";
+
             Status.Message=T("Config imported. Review it before connecting. DNS changes remain off.","استُوردت الإعدادات. راجعها قبل الاتصال. يبقى تغيير DNS معطّلًا.");
         } catch(Exception ex) { Status.Message=ex.Message; }
     }
@@ -234,6 +256,22 @@ public sealed partial class MainWindow : Window
         return await dialog.ShowAsync()==ContentDialogResult.Primary?secret.Password:null;
     }
 
+    string passwordIdentity="";
+    void RefreshPassword()
+    {
+        var p=new Profile{Host=Host.Text.Trim(),Port=(int)Port.Value,Username=Username.Text.Trim()};
+        var key=p.Endpoint+"/"+p.Username;
+        if(passwordIdentity.Length==0)passwordIdentity=profile.Endpoint+"/"+profile.Username;
+        if(key!=passwordIdentity){Password.Password=PasswordStore.Load(p);passwordIdentity=key;}
+    }
+    void TrayCommand(int command)
+    {
+        if(command==4){exitRequested=true;Close();return;}
+        AppWindow.Show();Activate();
+        if(command==2)Nav.SelectedItem=SettingsNav;
+        else if(command==3)Nav.SelectedItem=AboutNav;
+        else {Nav.SelectedItem=ConnectionNav;ConnectClick(ConnectButton,new RoutedEventArgs());}
+    }
     void UpdateClock()
     {
         var elapsed=connectedClock.Elapsed;

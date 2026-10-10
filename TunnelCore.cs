@@ -10,6 +10,7 @@ public sealed class TlsBridge : IAsyncDisposable
     readonly CancellationTokenSource stop = new();
     Task? pump;
     TcpClient? local, remote;
+    public string? RemoteAddress => (remote?.Client.RemoteEndPoint as IPEndPoint)?.Address.ToString();
     public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
     public void Start(Profile profile, Action<string> log)
     {
@@ -59,6 +60,7 @@ public sealed class Tunnel : IAsyncDisposable
     TlsBridge? bridge;
     SshClient? ssh;
     ForwardedPortDynamic? socks;
+    public string? RemoteAddress => bridge?.RemoteAddress;
     public bool Connected => ssh?.IsConnected == true && socks?.IsStarted == true;
     public async Task ConnectAsync(Profile p, string password, Func<string,string,bool,Task<bool>> confirmKey, Action<string> log, CancellationToken ct)
     {
@@ -111,6 +113,7 @@ public sealed class Profile
     public string DnsServers { get; set; } = "1.1.1.1, 1.0.0.1";
     public int AdapterIndex { get; set; }
     public bool UseDns { get; set; }
+    public bool RouteWindows { get; set; } = true;
     public Dictionary<string,string> HostKeys { get; set; } = new();
     public static string DataDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentTlsTunnel");
     public string Endpoint => $"{Host.ToLowerInvariant()}:{Port}";

@@ -16,7 +16,7 @@ foreach($state in @('home','profile','connected','settings','about')) {
  try {
   for($i=0;$i -lt 30;$i++) {Start-Sleep -Milliseconds 500;$app.Refresh();if($app.MainWindowHandle -ne [IntPtr]::Zero){break};if($app.HasExited){throw 'Application exited before screenshot'}}
   if($app.MainWindowHandle -eq [IntPtr]::Zero){throw 'No application window'}
-  [CaptureNative]::SetWindowPos($app.MainWindowHandle,[IntPtr]::Zero,12,12,800,570,0x0040) | Out-Null
+  [CaptureNative]::SetWindowPos($app.MainWindowHandle,[IntPtr]::Zero,12,12,1060,860,0x0040) | Out-Null
   [CaptureNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null
   Start-Sleep -Seconds 2
   $rect=New-Object CaptureNative+RECT
