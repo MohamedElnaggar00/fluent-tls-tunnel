@@ -281,18 +281,18 @@ public sealed partial class MainWindow : Window
             http.DefaultRequestHeaders.UserAgent.ParseAdd("FluentTlsTunnel/"+CurrentVersion);
             using var response=await http.GetAsync("https://api.github.com/repos/MohamedElnaggar00/fluent-tls-tunnel/releases?per_page=30");response.EnsureSuccessStatusCode();
             using var json=System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            Version? newest=null;Uri? url=null;
+            Version? newest=null;Uri? url=null;string newestTag="";
             foreach(var r in json.RootElement.EnumerateArray())
             {
                 if(r.TryGetProperty("draft",out var draft)&&draft.GetBoolean())continue;
                 var tag=(r.GetProperty("tag_name").GetString()??"").TrimStart('v','V');
-                if(Version.TryParse(tag,out var v)&&(newest==null||v>newest)&&Uri.TryCreate(r.GetProperty("html_url").GetString(),UriKind.Absolute,out var u)&&u.Host=="github.com"){newest=v;url=u;}
+                if(Version.TryParse(tag.Split('-','+')[0],out var v)&&(newest==null||v>newest)&&Uri.TryCreate(r.GetProperty("html_url").GetString(),UriKind.Absolute,out var u)&&u.Scheme=="https"&&u.Host=="github.com"&&u.AbsolutePath.StartsWith("/MohamedElnaggar00/fluent-tls-tunnel/releases/",StringComparison.OrdinalIgnoreCase)){newest=v;url=u;newestTag=tag;}
             }
             string result;
             if(newest==null)result=T("No releases found yet.","لا توجد إصدارات بعد.");
             else if(newest>Version.Parse(CurrentVersion))
             {
-                result=T($"Version {newest} is available.",$"الإصدار {newest} متاح.");
+                result=T($"Version {newestTag} is available.",$"الإصدار {newestTag} متاح.");
                 UpdateLinkSettings.NavigateUri=UpdateLinkAbout.NavigateUri=url;
                 UpdateLinkSettings.Visibility=UpdateLinkAbout.Visibility=Visibility.Visible;
             }

@@ -36,7 +36,7 @@ try {
   Save-State
   $prefix=$ip.ToString()+$(if($ip.AddressFamily -eq 'InterNetwork'){ '/32' }else{'/128'})
   Add-OwnedRoute $prefix $route.InterfaceIndex $route.NextHop
-  $start=@{FilePath=(Join-Path $PSScriptRoot 'Routing/tun2socks.exe');ArgumentList=@('-device','tun://Fluent_TLS_Tunnel','-proxy',"socks5://127.0.0.1:$SocksPort",'-loglevel','warn');PassThru=$true;WindowStyle='Hidden';RedirectStandardError=(Join-Path $Session 'engine-error.txt');RedirectStandardOutput=(Join-Path $Session 'engine-output.txt')}
+  $start=@{FilePath=(Join-Path $PSScriptRoot 'Routing/tun2socks.exe');ArgumentList=@('--device','tun://Fluent_TLS_Tunnel','--proxy',"socks5://127.0.0.1:$SocksPort",'--loglevel','warn');PassThru=$true;WindowStyle='Hidden';RedirectStandardError=(Join-Path $Session 'engine-error.txt');RedirectStandardOutput=(Join-Path $Session 'engine-output.txt')}
   $engine=Start-Process @start
   $state.EngineId=$engine.Id;$state.EngineTicks=$engine.StartTime.ToUniversalTime().Ticks;$state.Adapter='Fluent_TLS_Tunnel';Save-State
   $adapter=$null
