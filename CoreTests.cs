@@ -37,3 +37,8 @@ var encrypted=ConfigCrypto.Encode(profile,"test-password");
 Check(ConfigCrypto.Encrypted(encrypted),"Encrypted envelope");
 Check(ConfigCrypto.Decode(encrypted,"test-password").Sni==profile.Sni,"AES-GCM config roundtrip");
 try { ConfigCrypto.Decode(encrypted,"wrong-password"); throw new Exception("Wrong password accepted"); } catch(System.Security.Cryptography.CryptographicException) { Console.WriteLine("PASS wrong password rejected"); }
+
+var tampered=System.Text.Json.JsonSerializer.Deserialize<ConfigCrypto.Envelope>(encrypted)!;
+var data=Convert.FromBase64String(tampered.Data);data[0]^=1;
+var changed=System.Text.Json.JsonSerializer.Serialize(tampered with {Data=Convert.ToBase64String(data)});
+try { ConfigCrypto.Decode(changed,"test-password"); throw new Exception("Tampering accepted"); } catch(System.Security.Cryptography.CryptographicException) { Console.WriteLine("PASS tampered export rejected"); }
