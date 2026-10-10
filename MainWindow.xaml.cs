@@ -46,6 +46,7 @@ public sealed partial class MainWindow : Window
         Nav.SelectedItem=ConnectionNav;
         loaded=true; AdvancedPanel.IsExpanded=true; Localize(); ProfilePanel.IsExpanded=string.IsNullOrWhiteSpace(profile.Host);
         if(DnsManager.Pending) { Status.Severity=InfoBarSeverity.Warning; Status.Message=T("A DNS backup is pending. Restore DNS before a new connection.","توجد نسخة احتياطية لإعدادات DNS. استعد الإعدادات قبل اتصال جديد."); }
+        Status.RegisterPropertyChangedCallback(InfoBar.MessageProperty,(_,_)=>Status.IsOpen=!string.IsNullOrEmpty(Status.Message));
         heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && !tunnel.Connected) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
         heartbeat.Start();
         var preview=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--preview="));
@@ -104,22 +105,13 @@ public sealed partial class MainWindow : Window
     void SetState()
     {
         bool connected=previewConnected || tunnel?.Connected==true;
-        HeroTitle.Text=connected?T("You're connected","أنت متصل"):busy?T("Finding your private path…","جارٍ إنشاء مسارك الخاص…"):T("Ready when you are","جاهز عندما تكون مستعدًا");
+        HeroTitle.Text=connected?T("Connected","متصل"):busy?T("Finding your private path…","جارٍ إنشاء مسارك الخاص…"):T("Ready when you are","جاهز عندما تكون مستعدًا");
         HeroDetail.Text=connected?$"{profile.Host} · SOCKS5 127.0.0.1:{profile.SocksPort}":T("Your apps. Your server. One connection.","تطبيقاتك. خادمك. اتصال واحد.");
-        ConnectLabel.Text=busy?T("Cancel","إلغاء"):connected?T("Connected · Disconnect","متصل · قطع الاتصال"):T("Connect","اتصال");
+        ConnectLabel.Text=busy?T("Cancel","إلغاء"):connected?T("Disconnect","قطع الاتصال"):T("Connect","اتصال");
         ConnectIcon.Symbol=connected?Symbol.Accept:busy?Symbol.Cancel:Symbol.Link;
         ConnectionTime.Visibility=connected?Visibility.Visible:Visibility.Collapsed; UpdateClock();
-        if(connected)
-        {
-            ConnectButton.Background=new SolidColorBrush(Windows.UI.Color.FromArgb(255,24,112,55));
-            ConnectButton.Foreground=new SolidColorBrush(Colors.White);
-        }
-        else
-        {
-            ConnectButton.ClearValue(Control.BackgroundProperty);
-            ConnectButton.ClearValue(Control.ForegroundProperty);
-        }
-        Status.Title=connected?T("Connected","متصل"):busy?T("Connecting…","جارٍ الاتصال…"):T("Disconnected","غير متصل");
+        StatusGlyph.Glyph=connected?"\uE73E":"\uE72E";
+        if(connected) StatusGlyph.Foreground=(Brush)Application.Current.Resources["SystemFillColorSuccessBrush"]; else StatusGlyph.ClearValue(FontIcon.ForegroundProperty);
         Status.Severity=connected?InfoBarSeverity.Success:InfoBarSeverity.Informational;
         foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns}) control.IsEnabled=!busy && tunnel==null;
     }
