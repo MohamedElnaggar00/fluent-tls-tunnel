@@ -12,6 +12,8 @@ public sealed partial class MainWindow : Window
     Tunnel? tunnel;
     CancellationTokenSource? cancel;
     bool loaded, busy, closing, allowClose;
+    Task? connectingTask;
+    readonly SemaphoreSlim stopping = new(1,1);
     bool Arabic => profile.Language == "ar" || (profile.Language == "system" && CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar");
     string T(string en,string ar) => Arabic ? ar : en;
     readonly DispatcherTimer heartbeat = new() { Interval=TimeSpan.FromSeconds(2) };
@@ -75,7 +77,7 @@ public sealed partial class MainWindow : Window
         Connect.Content=busy?T("Cancel","إلغاء"):tunnel?.Connected==true?T("Disconnect","قطع الاتصال"):T("Connect","اتصال");
         Status.Title=tunnel?.Connected==true?T("Connected","متصل"):busy?T("Connecting…","جارٍ الاتصال…"):T("Disconnected","غير متصل");
         Status.Severity=tunnel?.Connected==true?InfoBarSeverity.Success:InfoBarSeverity.Informational;
-        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export}) control.IsEnabled=!busy && tunnel==null;
+        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns}) control.IsEnabled=!busy && tunnel==null;
     }
     Profile ReadProfile()
     {
@@ -117,20 +119,28 @@ public sealed partial class MainWindow : Window
             if(Password.Password.Length==0) throw new ArgumentException(T("Enter your password.","أدخل كلمة المرور."));
             p.Save(); busy=true; Status.Message=""; cancel=new(); tunnel=new(); SetState();
             var password = Password.Password;
-            await Task.Run(()=>tunnel.ConnectAsync(p,password,ConfirmKey,Log,cancel.Token));
+            connectingTask=Task.Run(()=>tunnel.ConnectAsync(p,password,ConfirmKey,Log,cancel.Token));
+            await connectingTask;
+            cancel.Token.ThrowIfCancellationRequested();
             if(p.UseDns) await DnsManager.ApplyAsync(p.AdapterIndex,Profile.ParseDns(p.DnsServers));
             Password.Password="";
             Status.Message=$"SOCKS5 · 127.0.0.1:{p.SocksPort}";
         }
         catch(Exception ex) { Log(ex.Message); try { await StopAsync(); } catch(Exception restore) { Log(restore.Message); } Status.Message=ex.Message; }
-        finally { busy=false; SetState(); }
+        finally { busy=false; connectingTask=null; SetState(); }
     }
     async Task StopAsync()
     {
         cancel?.Cancel();
-        if(tunnel!=null) { await Task.Run(async ()=>await tunnel.DisposeAsync()); tunnel=null; }
-        if(DnsManager.Pending) await DnsManager.RestoreAsync();
-        cancel?.Dispose(); cancel=null; SetState();
+        if(connectingTask!=null) try { await connectingTask; } catch { }
+        await stopping.WaitAsync();
+        try
+        {
+            if(tunnel!=null) { await Task.Run(async ()=>await tunnel.DisposeAsync()); tunnel=null; }
+            if(DnsManager.Pending) await DnsManager.RestoreAsync();
+            cancel?.Dispose(); cancel=null; SetState();
+        }
+        finally { stopping.Release(); }
     }
     void SaveClick(object sender,RoutedEventArgs e) { try { ReadProfile().Save(); Status.Message=T("Profile saved. Passwords are never saved.","حُفظت الإعدادات. لا تُحفظ كلمات المرور."); } catch(Exception ex) { Status.Message=ex.Message; } }
     async void RestoreDnsClick(object sender,RoutedEventArgs e) { try { await DnsManager.RestoreAsync(); Status.Message=T("Previous DNS settings restored.","استُعيدت إعدادات DNS السابقة."); } catch(Exception ex) { Status.Message=ex.Message; } }
@@ -176,6 +186,7 @@ public sealed partial class MainWindow : Window
         var stack=new StackPanel {Spacing=12};stack.Children.Add(check);stack.Children.Add(secret);
         var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Protect this config","حماية ملف الإعدادات"),Content=stack,PrimaryButtonText=T("Export","تصدير"),CloseButtonText=T("Cancel","إلغاء")};
         if(await dialog.ShowAsync()!=ContentDialogResult.Primary) return (false,null);
+        if(check.IsChecked==true && secret.Password.Length<8) throw new ArgumentException(T("Use at least 8 characters for the export password.","استخدم 8 أحرف على الأقل لكلمة مرور التصدير."));
         return (true,check.IsChecked==true?secret.Password:null);
     }
     async Task<string?> ImportPassword()
