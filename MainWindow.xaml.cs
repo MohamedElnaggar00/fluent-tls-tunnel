@@ -39,12 +39,12 @@ public sealed partial class MainWindow : Window
         {
             if(allowClose) return;
             e.Cancel=true;
-            if(!exitRequested && !Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview="))) {appWindow.Hide();return;}
+            exitRequested=true;
             if(closing) return;
             closing=true;
             try {if(busy){cancel?.Cancel();if(connectionFinished!=null)await connectionFinished.Task;} await StopAsync(); }
             catch(Exception ex) { Log(ex.Message); closing=false; return; }
-            tray?.Dispose();trayMenu?.Shutdown();allowClose=true; Close();
+            tray?.Dispose();trayMenu?.Shutdown();allowClose=true; Close(); _=Task.Run(async()=>{await Task.Delay(1500);Environment.Exit(0);});
         };
         Host.Text=profile.Host; Port.Value=profile.Port; Sni.Text=profile.Sni; Username.Text=profile.Username;
         RouteWindows.IsChecked=profile.RouteWindows; Password.Password=PasswordStore.Load(profile);
