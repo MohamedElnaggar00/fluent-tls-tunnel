@@ -4,6 +4,7 @@
 - Fix the app staying in the background after the window is closed. Closing now disconnects, restores Windows routing and fully exits.
 - Fix the installer being unable to close a running copy of the app. It now stops the app before installing or uninstalling.
 - Fix white borders around the tray right-click menu. The menu now has a clean rounded edge in light and dark themes.
+- Improve connection compatibility: when a server rejects the TLS handshake, the app now retries automatically with TLS 1.2 only and then with older TLS versions, and the log shows which TLS version was used.
 
 ## Downloads
 - `Fluent-TLS-Tunnel-installer.exe`: bundled-runtime installer, recommended.
