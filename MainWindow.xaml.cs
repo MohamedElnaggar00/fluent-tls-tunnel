@@ -72,7 +72,7 @@ public sealed partial class MainWindow : Window
             var mode=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--state="))?.Split('=')[1];
             previewConnected=mode=="connected";
             if(mode=="settings"||mode=="updates"||mode?.StartsWith("update-")==true) Nav.SelectedItem=SettingsNav;
-            if(mode=="about") Nav.SelectedItem=AboutNav;
+            if(mode=="about"||mode=="about-updates") Nav.SelectedItem=AboutNav;
 
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
             Localize();
@@ -87,6 +87,10 @@ public sealed partial class MainWindow : Window
             if(mode=="updates"||mode?.StartsWith("update-")==true)
             {
                 var showUpdates=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};showUpdates.Tick+=(_,_)=>{showUpdates.Stop();SettingsPage.ChangeView(null,double.MaxValue,null);};showUpdates.Start();
+            }
+            if(mode=="about-updates"||mode=="connection-actions")
+            {
+                var scroll=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};scroll.Tick+=(_,_)=>{scroll.Stop();if(mode=="about-updates")AboutPanel.ChangeView(null,double.MaxValue,null);else ConnectionPage.ChangeView(null,double.MaxValue,null);};scroll.Start();
             }
             if(mode=="tray")
             {
