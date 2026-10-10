@@ -21,7 +21,7 @@ Fluent TLS Tunnel puts an SSH connection inside a TLS connection with your chose
 - Server, port, SNI and SSH credentials in one place.
 - One button to connect, cancel or disconnect.
 - Automatic Windows TCP routing with a signed Wintun virtual adapter, IPv4/IPv6 routes and DNS over SSH.
-- Tray menu: Connect/Disconnect, Settings, About and Close. Closing the window hides it; Close in the tray restores routing and exits.
+- Tray menu: Connect/Disconnect, Settings, About and Close. Closing the window disconnects, restores routing and fully exits the app; the tray stays available while it runs.
 - Passwords remembered securely in Windows Credential Manager.
 - Local SOCKS5 on `127.0.0.1:1080`, with a configurable port.
 - Optional custom DNS for a selected Windows network adapter.
