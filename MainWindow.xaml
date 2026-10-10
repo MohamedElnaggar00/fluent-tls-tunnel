@@ -6,7 +6,9 @@
    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><ComboBox x:Name="Language" Width="130" SelectionChanged="SettingsChanged"><ComboBoxItem Content="System" Tag="system"/><ComboBoxItem Content="English" Tag="en"/><ComboBoxItem Content="العربية" Tag="ar"/></ComboBox><ComboBox x:Name="Theme" Width="110" SelectionChanged="SettingsChanged"><ComboBoxItem Content="System" Tag="system"/><ComboBoxItem Content="Light" Tag="light"/><ComboBoxItem Content="Dark" Tag="dark"/></ComboBox></StackPanel>
   </Grid>
   <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="16">
+   <StackPanel Spacing="18" HorizontalAlignment="Center" Margin="0,12,0,20"><SymbolIcon Symbol="ProtectedDocument" Width="72" Height="72"/><TextBlock x:Name="HeroTitle" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock x:Name="HeroDetail" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/></StackPanel>
    <InfoBar x:Name="Status" IsOpen="True" IsClosable="False" Severity="Informational"/>
+   <Expander x:Name="ProfilePanel" HorizontalAlignment="Stretch" IsExpanded="True">
    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20">
     <StackPanel Spacing="14">
      <TextBlock x:Name="ConnectionTitle" FontSize="18" FontWeight="SemiBold"/>
@@ -17,6 +19,8 @@
      <TextBlock x:Name="TlsHint" TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
     </StackPanel>
    </Border>
+   </Expander>
+   <Expander x:Name="AdvancedPanel" HorizontalAlignment="Stretch">
    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12" Padding="20">
     <StackPanel Spacing="12">
      <TextBlock x:Name="RoutingTitle" FontSize="18" FontWeight="SemiBold"/>
@@ -29,10 +33,11 @@
      <Button x:Name="RestoreDns" Click="RestoreDnsClick"/>
     </StackPanel>
    </Border>
+   </Expander>
    <Expander x:Name="LogsPanel" HorizontalAlignment="Stretch"><TextBox x:Name="Logs" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="150" FlowDirection="LeftToRight" FontFamily="Cascadia Mono"/></Expander>
    <StackPanel Orientation="Horizontal" Spacing="8"><Button x:Name="Import" Click="ImportClick"/><Button x:Name="Export" Click="ExportClick"/></StackPanel>
    <TextBlock x:Name="Credits" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"><Run Text="Mohamed Elnaggar · "/><Hyperlink NavigateUri="https://instinct.com">brought to you by Instinct</Hyperlink></TextBlock>
   </StackPanel></ScrollViewer>
-  <Grid Grid.Row="2" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button x:Name="Connect" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Height="44" Click="ConnectClick"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon x:Name="ConnectIcon" Symbol="Link"/><TextBlock x:Name="ConnectLabel" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionTime" Text="00:00:00" Visibility="Collapsed" FlowDirection="LeftToRight" FontFamily="Cascadia Mono" VerticalAlignment="Center"/></StackPanel></Button><Button x:Name="Save" Grid.Column="1" Height="44" Click="SaveClick"/></Grid>
+  <Grid Grid.Row="2" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Button x:Name="Connect" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Stretch" Height="56" Click="ConnectClick"><StackPanel Orientation="Horizontal" Spacing="8"><SymbolIcon x:Name="ConnectIcon" Symbol="Link"/><TextBlock x:Name="ConnectLabel" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionTime" Text="00:00:00" Visibility="Collapsed" FlowDirection="LeftToRight" FontFamily="Cascadia Mono" VerticalAlignment="Center"/></StackPanel></Button><Button x:Name="Save" Grid.Column="1" Height="44" Click="SaveClick"/></Grid>
  </Grid>
 </Window>
