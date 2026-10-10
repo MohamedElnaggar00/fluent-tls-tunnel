@@ -1,6 +1,16 @@
-name: Publish approved v0.1.0 pre-release
+name: Publish approved pre-release
 on:
   workflow_dispatch:
+    inputs:
+      run_id:
+        description: Verified Windows build run id
+        required: true
+      sha:
+        description: Commit the build was made from
+        required: true
+      tag:
+        description: Release tag
+        required: true
 permissions:
   contents: write
   actions: read
@@ -9,14 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
       - uses: actions/download-artifact@v4
         with:
           name: Fluent-TLS-Tunnel-preview
-          run-id: 38069901872
+          run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: verified-build
       - name: Publish verified Windows packages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create v0.1.0 --target 35aa41e73ad2924c2d28a683b45f0600ed4b9ab6 --prerelease --title 'Fluent TLS Tunnel v0.1.0 - Preview' --notes-file RELEASE_NOTES.md verified-build/packages/Fluent-TLS-Tunnel-installer.exe verified-build/packages/Fluent-TLS-Tunnel-portable.zip verified-build/packages/Fluent-TLS-Tunnel-runtime-dependent.exe
+          gh release create "${{ inputs.tag }}" --target "${{ inputs.sha }}" --prerelease --title "Fluent TLS Tunnel ${{ inputs.tag }} - Preview" --notes-file RELEASE_NOTES.md verified-build/packages/Fluent-TLS-Tunnel-installer.exe verified-build/packages/Fluent-TLS-Tunnel-portable.zip verified-build/packages/Fluent-TLS-Tunnel-runtime-dependent.exe
