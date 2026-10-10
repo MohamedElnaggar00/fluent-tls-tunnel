@@ -41,6 +41,20 @@ jobs:
       - name: Capture UI previews
         shell: powershell
         run: ./Capture.ps1
+      - name: Smoke test bundled install and uninstall
+        shell: pwsh
+        run: |
+          $dir=Join-Path $env:TEMP 'FluentTlsTunnelSmoke'
+          $install=Start-Process artifacts/packages/Fluent-TLS-Tunnel-installer.exe -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$dir") -Wait -PassThru
+          if($install.ExitCode -ne 0) {throw "Installer failed: $($install.ExitCode)"}
+          if(!(Test-Path "$dir/FluentTlsTunnel.exe") -or !(Test-Path "$dir/1-AppIcon.ico")) {throw 'Installed app files are missing'}
+          $app=Start-Process "$dir/FluentTlsTunnel.exe" -ArgumentList '--preview=en --state=about' -PassThru
+          for($i=0;$i -lt 30;$i++) {Start-Sleep -Milliseconds 500; $app.Refresh(); if($app.MainWindowHandle -ne [IntPtr]::Zero) {break}; if($app.HasExited) {throw 'Installed app exited before its window opened'}}
+          if($app.MainWindowHandle -eq [IntPtr]::Zero) {throw 'Installed app did not open a window'}
+          $app.CloseMainWindow() | Out-Null
+          if(!$app.WaitForExit(15000)) {$app.Kill(); throw 'Normal app shutdown did not complete'}
+          $uninstall=Start-Process "$dir/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if($uninstall.ExitCode -ne 0) {throw 'Uninstall failed'}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
