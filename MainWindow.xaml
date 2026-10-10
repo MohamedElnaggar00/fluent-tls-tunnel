@@ -15,7 +15,7 @@
      <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="120"/></Grid.ColumnDefinitions><TextBox x:Name="Host" FlowDirection="LeftToRight"/><NumberBox x:Name="Port" Grid.Column="1" Minimum="1" Maximum="65535" SpinButtonPlacementMode="Compact" FlowDirection="LeftToRight"/></Grid>
      <TextBox x:Name="Sni" FlowDirection="LeftToRight"/>
      <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBox x:Name="Username" FlowDirection="LeftToRight"/><PasswordBox x:Name="Password" Grid.Column="1" FlowDirection="LeftToRight"/></Grid>
-     <CheckBox x:Name="VerifyTls" IsChecked="True"/>
+     <CheckBox x:Name="VerifyTls" IsChecked="False"/>
      <TextBlock x:Name="TlsHint" TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
     </StackPanel>
    </Border>
