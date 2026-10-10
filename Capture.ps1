@@ -13,8 +13,10 @@ public class CaptureNative {
 '@
 New-Item artifacts/screenshots -ItemType Directory -Force | Out-Null
 foreach($lang in @('en','ar')) {
-foreach($state in @('home','profile','connected','settings','updates','update-checking','update-current','update-new','update-empty','update-error','about','about-updates','connection-actions','tray')) {
- $app=Start-Process artifacts/portable/FluentTlsTunnel.exe -ArgumentList "--preview=$lang --state=$state" -PassThru
+foreach($state in @('home','profile','connected','settings','updates','update-checking','update-current','update-new','update-empty','update-error','about','about-updates','connection-actions','tray','material-mica','material-mica-alt','material-acrylic')) {
+  $mode=$state;$material='mica-alt';$theme='light'
+ if($state.StartsWith('material-')){$mode='settings';$material=$state.Substring(9);$theme='dark'}
+ $app=Start-Process artifacts/portable/FluentTlsTunnel.exe -ArgumentList "--preview=$lang --state=$mode --material=$material --theme=$theme" -PassThru
  try {
   for($i=0;$i -lt 30;$i++) {Start-Sleep -Milliseconds 500;$app.Refresh();if($app.MainWindowHandle -ne [IntPtr]::Zero){break};if($app.HasExited){throw 'Application exited before screenshot'}}
   if($app.MainWindowHandle -eq [IntPtr]::Zero){throw 'No application window'}
