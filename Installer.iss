@@ -1,7 +1,7 @@
 #define AppName "Fluent TLS Tunnel"
 #define AppExe "FluentTlsTunnel.exe"
 #ifndef BuildVersion
-#define BuildVersion "0.1.3"
+#define BuildVersion "0.1.4"
 #endif
 #ifndef SourceDir
 #define SourceDir "artifacts\portable"
@@ -41,6 +41,21 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "Launch Fluent TLS Tunnel"; Flags: nowait postinstall skipifsilent
 [Code]
+procedure StopRunningApp;
+var Code: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM {#AppExe}', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Sleep(500);
+end;
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  StopRunningApp;
+  Result := '';
+end;
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then StopRunningApp;
+end;
 procedure InitializeWizard;
 begin
   WizardForm.WelcomeLabel2.Caption := WizardForm.WelcomeLabel2.Caption + #13#10#13#10 + 'brought to you by Instinct - https://instinct.com';
