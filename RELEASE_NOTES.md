@@ -1,47 +1,35 @@
 ## English
 
-First public preview of Fluent TLS Tunnel for Windows x64.
+Update to the Fluent TLS Tunnel preview for Windows x64. Still a **pre-release**.
 
 ### Downloads
 - **Fluent-TLS-Tunnel-installer.exe**: recommended. Includes the .NET runtime; installs per user without an administrator requirement.
 - **Fluent-TLS-Tunnel-portable.zip**: unzip and run FluentTlsTunnel.exe. Includes the runtime.
 - **Fluent-TLS-Tunnel-runtime-dependent.exe**: smaller installer; requires the .NET 8 Desktop Runtime (x64).
 
-### Included
-- Native WinUI 3 interface with Mica, NavigationView, Connection, Settings and About.
-- English and Arabic, mirrored RTL, and system/light/dark appearance.
-- SSH over TLS with SNI, a loopback SOCKS5 proxy, one Connect/Cancel/Disconnect button and a connection timer.
-- TLS certificate verification, SSH host-key review and saved host-key trust.
-- Local profiles and .ftlsc import/export, with optional password-based encryption. SSH passwords are not saved or exported.
-- Optional custom adapter DNS, prefilled with 1.1.1.1 and 1.0.0.1, backup and Restore DNS.
-- Approved globe, key and check app icon.
+### Changes
+- The connected state now matches the Windows 11 Settings style: a compact card with a status check, host and SOCKS5 address, and the connection timer.
+- The Connect/Disconnect button uses the standard WinUI 3 accent style and default size instead of the large custom green button.
+- The status banner appears only when there is a message or an error.
+- The Save profile button uses the standard button height.
 
-### Preview notes
-This is a **pre-release**, not a stable build. It is a SOCKS5 tunnel, not a full-device VPN; configure compatible apps to use 127.0.0.1:1080 (or your chosen port). Custom DNS needs Windows administrator approval and has not yet been runtime-tested on a real adapter. Your own SSH service still needs a connection test. TLS verification is on by default; turning it off weakens protection. The binaries are unsigned, so Windows may show a SmartScreen warning. No automatic reconnect or system tray controls in this preview.
-
-Windows build, TLS/SNI and encryption tests passed. The bundled installer passed install, app launch, normal exit and uninstall checks. Screenshots of a connected state are UI previews, not proof of a live server connection.
+Everything else is unchanged from v0.1.0, including the notes: this is a SOCKS5 tunnel, not a full-device VPN; custom DNS has not yet been runtime-tested on a real adapter; the binaries are unsigned, so Windows may show a SmartScreen warning.
 
 ## العربية
 
-أول نسخة تجريبية عامة من Fluent TLS Tunnel لويندوز بمعمارية x64.
+تحديث للنسخة التجريبية من Fluent TLS Tunnel لويندوز بمعمارية x64. ما زال الإصدار **pre-release**.
 
 ### التنزيلات
-- **Fluent-TLS-Tunnel-installer.exe**: الخيار الموصى به. يتضمن بيئة .NET ويُثبَّت لحساب المستخدم دون اشتراط صلاحية المسؤول.
+- **Fluent-TLS-Tunnel-installer.exe**: الخيار الموصى به. يتضمن بيئة .NET ويُثبَّت لحساب المستخدم دون اشتراط صلاحية المسؤول.
 - **Fluent-TLS-Tunnel-portable.zip**: فك الضغط وشغّل FluentTlsTunnel.exe. يتضمن بيئة التشغيل.
 - **Fluent-TLS-Tunnel-runtime-dependent.exe**: مُثبّت أصغر يحتاج .NET 8 Desktop Runtime بمعمارية x64.
 
-### المزايا
-- واجهة WinUI 3 أصلية مع Mica وNavigationView وصفحات الاتصال والإعدادات وحول التطبيق.
-- العربية والإنجليزية، واتجاه RTL، والمظهر الفاتح والداكن والتلقائي.
-- SSH عبر TLS مع SNI ووكيل SOCKS5 محلي وزر واحد للاتصال والإلغاء وقطع الاتصال، مع عداد للمدة.
-- التحقق من شهادة TLS ومراجعة مفتاح خادم SSH وحفظ الثقة به.
-- حفظ الإعدادات واستيراد وتصدير ملفات .ftlsc مع تشفير اختياري. لا تُحفظ كلمة مرور SSH ولا تُصدَّر.
-- DNS مخصص اختياري للمحول، بقيم افتراضية 1.1.1.1 و1.0.0.1، مع نسخة احتياطية وخيار استعادة DNS.
-- الأيقونة المعتمدة: كرة أرضية ومفتاح وعلامة صح.
+### التغييرات
+- أصبحت حالة الاتصال بنفس نمط تطبيق الإعدادات في ويندوز 11: بطاقة مدمجة فيها علامة الحالة وعنوان الخادم وSOCKS5 وعداد مدة الاتصال.
+- زر الاتصال وقطع الاتصال يستخدم نمط WinUI 3 القياسي وحجمه الافتراضي بدل الزر الأخضر الكبير المخصص.
+- يظهر شريط الحالة فقط عند وجود رسالة أو خطأ.
+- زر حفظ الإعدادات بالارتفاع القياسي.
 
-### ملاحظات النسخة التجريبية
-هذا إصدار **pre-release** وليس إصدارًا مستقرًا. يعمل كنفق SOCKS5، وليس VPN للجهاز بالكامل. اضبط التطبيقات المتوافقة على 127.0.0.1:1080 أو المنفذ الذي تختاره. تغيير DNS يحتاج موافقة مسؤول ويندوز ولم يُختبر بعد على محول فعلي. يلزم اختبار الاتصال بخدمة SSH الخاصة بك. التحقق من TLS مفعّل افتراضيًا، وتعطيله يضعف الحماية. الملفات غير موقّعة رقميًا، وقد يظهر تحذير SmartScreen. لا تتضمن هذه النسخة إعادة اتصال تلقائية أو تحكمًا من شريط النظام.
-
-نجح بناء ويندوز واختبارات TLS وSNI والتشفير. نجح اختبار تثبيت النسخة المضمّنة وتشغيل التطبيق وإغلاقه وإزالته. صور حالة الاتصال معاينة للواجهة وليست دليلًا على اتصال بخادم فعلي.
+بقية المزايا والملاحظات كما في v0.1.0: الأداة نفق SOCKS5 وليست VPN للجهاز بالكامل، ولم يُختبر DNS المخصص بعد على محول فعلي، والملفات غير موقّعة رقميًا وقد يظهر تحذير SmartScreen.
 
 brought to you by [Instinct](https://instinct.com)
