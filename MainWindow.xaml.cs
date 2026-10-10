@@ -24,7 +24,7 @@ public sealed partial class MainWindow : Window
         SystemBackdrop = new MicaBackdrop();
         var hwnd=WinRT.Interop.WindowNative.GetWindowHandle(this);
         var appWindow=AppWindow.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(hwnd));
-        appWindow.Resize(new Windows.Graphics.SizeInt32(840,950));
+        appWindow.Resize(new Windows.Graphics.SizeInt32(820,880));
         appWindow.Closing += async (_,e) =>
         {
             if(allowClose) return;
@@ -41,7 +41,7 @@ public sealed partial class MainWindow : Window
         Adapter.SelectedItem=Adapter.Items.Cast<DnsManager.AdapterInfo>().FirstOrDefault(a=>a.Index==profile.AdapterIndex);
         Language.SelectedIndex=profile.Language switch {"en"=>1,"ar"=>2,_=>0};
         Theme.SelectedIndex=profile.Theme switch {"light"=>1,"dark"=>2,_=>0};
-        loaded=true; Localize();
+        loaded=true; Localize(); ProfilePanel.IsExpanded=string.IsNullOrWhiteSpace(profile.Host);
         if(DnsManager.Pending) { Status.Severity=InfoBarSeverity.Warning; Status.Message=T("A DNS backup is pending. Restore DNS before a new connection.","توجد نسخة احتياطية لإعدادات DNS. استعد الإعدادات قبل اتصال جديد."); }
         heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && !tunnel.Connected) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
         heartbeat.Start();
@@ -53,6 +53,7 @@ public sealed partial class MainWindow : Window
         Root.FlowDirection=Arabic?FlowDirection.RightToLeft:FlowDirection.LeftToRight;
         Root.RequestedTheme=profile.Theme switch {"light"=>ElementTheme.Light,"dark"=>ElementTheme.Dark,_=>ElementTheme.Default};
         Subtitle.Text=T("A private path. One simple connection.","مسار خاص. اتصال بسيط.");
+        ProfilePanel.Header=T("Connection profile","إعدادات الاتصال"); AdvancedPanel.Header=T("Advanced · DNS & routing","خيارات متقدمة · DNS والتوجيه");
         ConnectionTitle.Text=T("Server & authentication","الخادم والمصادقة"); Host.Header=T("Server","الخادم"); Port.Header=T("Port","المنفذ"); Sni.Header="SNI";
         Username.Header=T("SSH username","اسم مستخدم SSH"); Password.Header=T("Password (not saved)","كلمة المرور (لا تُحفظ)");
         VerifyTls.Content=T("Verify TLS certificate (recommended)","التحقق من شهادة TLS (موصى به)");
@@ -76,6 +77,8 @@ public sealed partial class MainWindow : Window
     void SetState()
     {
         bool connected=tunnel?.Connected==true;
+        HeroTitle.Text=connected?T("You're connected","أنت متصل"):busy?T("Finding your private path…","جارٍ إنشاء مسارك الخاص…"):T("Ready when you are","جاهز عندما تكون مستعدًا");
+        HeroDetail.Text=connected?$"{profile.Host} · SOCKS5 127.0.0.1:{profile.SocksPort}":T("Your apps. Your server. One connection.","تطبيقاتك. خادمك. اتصال واحد.");
         ConnectLabel.Text=busy?T("Cancel","إلغاء"):connected?T("Connected · Disconnect","متصل · قطع الاتصال"):T("Connect","اتصال");
         ConnectIcon.Symbol=connected?Symbol.Accept:busy?Symbol.Cancel:Symbol.Link;
         ConnectionTime.Visibility=connected?Visibility.Visible:Visibility.Collapsed; UpdateClock();
@@ -137,7 +140,7 @@ public sealed partial class MainWindow : Window
             await connectingTask;
             cancel.Token.ThrowIfCancellationRequested();
             if(p.UseDns) await DnsManager.ApplyAsync(p.AdapterIndex,Profile.ParseDns(p.DnsServers));
-            connectedClock.Restart(); ShowConnectedNotification();
+            connectedClock.Restart(); ProfilePanel.IsExpanded=false; AdvancedPanel.IsExpanded=false; ShowConnectedNotification();
             Password.Password="";
             Status.Message=$"SOCKS5 · 127.0.0.1:{p.SocksPort}";
         }
