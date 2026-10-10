@@ -74,7 +74,19 @@ public sealed partial class MainWindow : Window
     }
     void SetState()
     {
-        Connect.Content=busy?T("Cancel","إلغاء"):tunnel?.Connected==true?T("Disconnect","قطع الاتصال"):T("Connect","اتصال");
+        bool connected=tunnel?.Connected==true;
+        ConnectLabel.Text=busy?T("Cancel","إلغاء"):connected?T("Connected · Disconnect","متصل · قطع الاتصال"):T("Connect","اتصال");
+        ConnectIcon.Symbol=connected?Symbol.Accept:busy?Symbol.Cancel:Symbol.Link;
+        if(connected)
+        {
+            Connect.Background=new SolidColorBrush(Windows.UI.Color.FromArgb(255,24,112,55));
+            Connect.Foreground=new SolidColorBrush(Colors.White);
+        }
+        else
+        {
+            Connect.ClearValue(Control.BackgroundProperty);
+            Connect.ClearValue(Control.ForegroundProperty);
+        }
         Status.Title=tunnel?.Connected==true?T("Connected","متصل"):busy?T("Connecting…","جارٍ الاتصال…"):T("Disconnected","غير متصل");
         Status.Severity=tunnel?.Connected==true?InfoBarSeverity.Success:InfoBarSeverity.Informational;
         foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns}) control.IsEnabled=!busy && tunnel==null;
