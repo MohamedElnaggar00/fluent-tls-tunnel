@@ -1,16 +1,7 @@
-# Fluent TLS Tunnel v0.1.2
+# Fluent TLS Tunnel v0.1.3
 
-## Features and fixes
-- Automatic Windows-wide TCP routing through the SSH-over-TLS tunnel, with IPv4 and IPv6 support and DNS carried through SSH.
-- Upstream TLS endpoint bypass to keep the tunnel connection outside its own routes.
-- Restore the original routes and DNS policy on disconnect, with an owner-process watchdog and recovery journal for interrupted sessions.
-- System tray menu with Connect/Disconnect, Settings, About and Close. Closing the main window keeps the app in the tray.
-- Save SSH passwords securely with Windows Credential Manager.
-- Larger Fluent window with a labeled navigation rail, grouped settings, an inline connection profile and a collapsible connection log.
-- Mica, Mica Alt and Acrylic background options. Arabic layouts use left-side window caption buttons.
-- Separate primary and optional secondary DNS address inputs.
-- Manual inline update checks in Settings and About, including pre-releases, with download links opened only by an explicit click.
-- TLS certificate verification is unchecked for new profiles; the recommendation and protection warning remain visible.
+## Fixes
+- Fix the runtime-dependent installer reporting that the .NET 8 Desktop Runtime is missing when it is installed. Detection now checks the 64-bit and 32-bit registry views and the standard install folders, and offers to continue instead of blocking if the runtime cannot be detected.
 
 ## Downloads
 - `Fluent-TLS-Tunnel-installer.exe`: bundled-runtime installer, recommended.
