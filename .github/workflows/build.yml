@@ -16,6 +16,11 @@ jobs:
           dotnet-version: 8.0.x
       - name: Test TLS, SNI and validation
         run: dotnet run --project CoreTests.csproj -c Release
+      - name: Test Windows TCP routing and exact restore
+        shell: pwsh
+        run: |
+          New-Item artifacts -ItemType Directory -Force | Out-Null
+          ./TestRouting.ps1
       - name: Audit dependencies
         run: dotnet list TunnelCore.csproj package --vulnerable --include-transitive
       - name: Publish framework-dependent app
