@@ -12,6 +12,7 @@ sealed class TrayMenuWindow : Window
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr h, int i);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr h, int i, IntPtr v);
 
+    [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int v, int size);
     bool shuttingDown;
     public void Shutdown(){shuttingDown=true;Close();}
     readonly Border _root = new();
@@ -36,6 +37,18 @@ sealed class TrayMenuWindow : Window
         try { SystemBackdrop = new DesktopAcrylicBackdrop(); } catch { }
         AppWindow.Closing += (a, e) => {if(shuttingDown)return; e.Cancel = true; a.Hide(); };
         Activated += (s, e) => { if (e.WindowActivationState == WindowActivationState.Deactivated) AppWindow.Hide(); };
+        try
+        {
+            long st = (long)GetWindowLongPtr(_hwnd, -16);
+            st &= ~(0x00C00000L | 0x00800000L | 0x00040000L | 0x00020000L | 0x00010000L);
+            SetWindowLongPtr(_hwnd, -16, (IntPtr)st);
+            int none = unchecked((int)0xFFFFFFFE), round = 2;
+            DwmSetWindowAttribute(_hwnd, 34, ref none, 4);   // no DWM border color
+            DwmSetWindowAttribute(_hwnd, 33, ref round, 4);  // rounded corners
+        } catch { }
+        _root.CornerRadius = new CornerRadius(8);
+        _root.BorderThickness = new Thickness(1);
+        _root.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(48, 128, 128, 128));
         long ex = (long)GetWindowLongPtr(_hwnd, -20);
         SetWindowLongPtr(_hwnd, -20, (IntPtr)(ex | 0x80));
 
