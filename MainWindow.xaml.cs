@@ -54,7 +54,7 @@ public sealed partial class MainWindow : Window
         Host.LostFocus+=(_,_)=>RefreshPassword();Username.LostFocus+=(_,_)=>RefreshPassword();Port.LostFocus+=(_,_)=>RefreshPassword();
         Language.SelectedIndex=profile.Language switch {"en"=>1,"ar"=>2,_=>0};
         Theme.SelectedIndex=profile.Theme switch {"light"=>1,"dark"=>2,_=>0};
-        Backdrop.SelectedIndex=profile.Backdrop switch {"mica-alt"=>1,"acrylic"=>2,_=>0};
+        (profile.Backdrop switch {"mica"=>MicaOption,"acrylic"=>AcrylicOption,_=>MicaAltOption}).IsChecked=true;
         Nav.SelectedItem=ConnectionNav;
         loaded=true; Localize();
         if(!Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview=")))
@@ -79,6 +79,7 @@ public sealed partial class MainWindow : Window
             if(mode=="about"||mode=="about-updates") Nav.SelectedItem=AboutNav;
 
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
+            loaded=false;(profile.Backdrop switch {"mica"=>MicaOption,"acrylic"=>AcrylicOption,_=>MicaAltOption}).IsChecked=true;loaded=true;
             Localize();
             if(mode?.StartsWith("update-")==true)
             {
@@ -134,7 +135,7 @@ public sealed partial class MainWindow : Window
         AboutDescription.Text=T("SSH over TLS with SNI, automatic Windows TCP routing and a local SOCKS5 proxy. UDP is not supported.","SSH عبر TLS مع SNI وتوجيه TCP تلقائي لويندوز ووكيل SOCKS5 محلي. لا يُدعم UDP.");
         DeveloperCredit.Text=T("Developed by Mohamed Elnaggar","تطوير محمد النجار");
         RepositoryLink.Content="GitHub Repo Link";
-        Language.Header=T("Language","اللغة"); Theme.Header=T("Appearance","المظهر"); Backdrop.Header=T("Window material","خامة النافذة");
+        Language.Header=T("Language","اللغة"); Theme.Header=T("Appearance","المظهر"); BackdropHeading.Text=T("Background","الخلفية");
         Subtitle.Text=T("Connection","الاتصال");
         RouteWindows.Content=T("Route Windows traffic automatically (administrator permission)","توجيه اتصال ويندوز تلقائيًا (يتطلب صلاحية المسؤول)");
         ConnectionTitle.Text=T("Server & authentication","الخادم والمصادقة"); Host.Header=T("Server","الخادم"); Port.Header=T("Port","المنفذ"); Sni.Header="SNI";
@@ -151,12 +152,17 @@ public sealed partial class MainWindow : Window
         Import.Content=T("Import config","استيراد إعدادات"); Export.Content=T("Export config","تصدير إعدادات");
         Save.Content=T("Save profile","حفظ الإعدادات"); SetState();
     }
+    void BackdropChanged(object sender,RoutedEventArgs e)
+    {
+        if(!loaded)return;
+        profile.Backdrop=(sender as RadioButton)?.Tag?.ToString()??"mica-alt";
+        profile.Save();Localize();
+    }
     void SettingsChanged(object sender,SelectionChangedEventArgs e)
     {
         if(!loaded) return;
         profile.Language=(Language.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"system";
         profile.Theme=(Theme.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"system";
-        profile.Backdrop=(Backdrop.SelectedItem as ComboBoxItem)?.Tag?.ToString()??"mica";
         profile.Save();Localize();
     }
     void SetState()
@@ -170,7 +176,7 @@ public sealed partial class MainWindow : Window
         StatusGlyph.Glyph=connected?"\uE73E":"\uE72E";
         if(connected) StatusGlyph.Foreground=(Brush)Application.Current.Resources["SystemFillColorSuccessBrush"]; else StatusGlyph.ClearValue(FontIcon.ForegroundProperty);
         Status.Severity=connected?InfoBarSeverity.Success:InfoBarSeverity.Informational;
-        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns,RestoreRouting,RouteWindows,DnsSecondary,Backdrop}) control.IsEnabled=!busy && tunnel==null;
+        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns,RestoreRouting,RouteWindows,DnsSecondary,AcrylicOption,MicaOption,MicaAltOption}) control.IsEnabled=!busy && tunnel==null;
     }
     void LoadDnsFields(string addresses)
     {
