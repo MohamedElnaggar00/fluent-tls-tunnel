@@ -12,7 +12,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive=$(find _incoming -name '*routing-batch.zip' -print -quit)
+          archive=$(find . -maxdepth 1 -name '*routing-batch.zip' -print | sort | tail -1)
           test -n "$archive"
           python3 - "$archive" <<'PY'
           import sys,zipfile,pathlib
@@ -22,7 +22,7 @@ jobs:
               if p.is_absolute() or '..' in p.parts or n.startswith('.github/') or n.startswith('.git/'): raise SystemExit('Unsafe entry')
             z.extractall('.')
           PY
-          rm -r _incoming
+          rm -f ./*routing-batch.zip
           git config user.name 'Mohamed Elnaggar'
           git config user.email 'MohamedElnaggar00@users.noreply.github.com'
           git add .
