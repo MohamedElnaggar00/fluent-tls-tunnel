@@ -17,6 +17,8 @@ jobs:
       - name: Test TLS, SNI and validation
         run: dotnet run --project CoreTests.csproj -c Release
       - name: Test Windows TCP routing and exact restore
+        id: routing
+        continue-on-error: true
         shell: pwsh
         run: |
           New-Item artifacts -ItemType Directory -Force | Out-Null
@@ -75,6 +77,9 @@ jobs:
           if(!$app.WaitForExit(15000)) {$app.Kill(); throw 'Normal app shutdown did not complete'}
           $uninstall=Start-Process "$dir/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
           if($uninstall.ExitCode -ne 0) {throw 'Uninstall failed'}
+      - name: Enforce routing test result
+        if: steps.routing.outcome != 'success'
+        run: throw 'Routing verification did not pass'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
