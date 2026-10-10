@@ -43,6 +43,7 @@ public sealed partial class MainWindow : Window
         Adapter.SelectedItem=Adapter.Items.Cast<DnsManager.AdapterInfo>().FirstOrDefault(a=>a.Index==profile.AdapterIndex);
         Language.SelectedIndex=profile.Language switch {"en"=>1,"ar"=>2,_=>0};
         Theme.SelectedIndex=profile.Theme switch {"light"=>1,"dark"=>2,_=>0};
+        Nav.SelectedItem=ConnectionNav;
         loaded=true; AdvancedPanel.IsExpanded=true; Localize(); ProfilePanel.IsExpanded=string.IsNullOrWhiteSpace(profile.Host);
         if(DnsManager.Pending) { Status.Severity=InfoBarSeverity.Warning; Status.Message=T("A DNS backup is pending. Restore DNS before a new connection.","توجد نسخة احتياطية لإعدادات DNS. استعد الإعدادات قبل اتصال جديد."); }
         heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && !tunnel.Connected) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
@@ -53,21 +54,26 @@ public sealed partial class MainWindow : Window
             profile.Language=preview.Split('=')[1]; Language.SelectedIndex=profile.Language=="ar"?2:1;
             var mode=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--state="))?.Split('=')[1];
             previewConnected=mode=="connected";
-            if(mode=="settings") Pages.SelectedItem=SettingsPage;
-            if(mode=="about") AboutClick(this,new RoutedEventArgs());
+            if(mode=="settings") Nav.SelectedItem=SettingsNav;
+            if(mode=="about") Nav.SelectedItem=AboutNav;
             if(mode!="profile") ProfilePanel.IsExpanded=false;
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
             Localize(); ConnectButton.IsEnabled=false;
         }
     }
-    void AboutClick(object sender,RoutedEventArgs e) { Pages.Visibility=Visibility.Collapsed; AboutPanel.Visibility=Visibility.Visible; }
-    void AboutBackClick(object sender,RoutedEventArgs e) { AboutPanel.Visibility=Visibility.Collapsed; Pages.Visibility=Visibility.Visible; }
+    void NavChanged(NavigationView sender,NavigationViewSelectionChangedEventArgs e)
+    {
+        var page=(e.SelectedItem as NavigationViewItem)?.Tag?.ToString()??"connection";
+        ConnectionPage.Visibility=page=="connection"?Visibility.Visible:Visibility.Collapsed;
+        SettingsPage.Visibility=page=="settings"?Visibility.Visible:Visibility.Collapsed;
+        AboutPanel.Visibility=page=="about"?Visibility.Visible:Visibility.Collapsed;
+        ConnectionActions.Visibility=page=="connection"?Visibility.Visible:Visibility.Collapsed;
+    }
     void Localize()
     {
         Root.FlowDirection=Arabic?FlowDirection.RightToLeft:FlowDirection.LeftToRight;
         Root.RequestedTheme=profile.Theme switch {"light"=>ElementTheme.Light,"dark"=>ElementTheme.Dark,_=>ElementTheme.Default};
-        ConnectionPage.Header=T("Connection","الاتصال"); SettingsPage.Header=T("Settings","الإعدادات");
-        AboutButtonLabel.Text=T("About","حول التطبيق");
+        ConnectionNav.Content=T("Connection","الاتصال"); SettingsNav.Content=T("Settings","الإعدادات"); AboutNav.Content=T("About","حول التطبيق");
         VersionText.Text="v" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
         AboutDescription.Text=T("A Fluent Windows SSH-over-TLS client with SNI and a local SOCKS5 proxy. This is not a full-device VPN.","عميل SSH عبر TLS لواجهة ويندوز Fluent، مع SNI ووكيل SOCKS5 محلي. ليس شبكة VPN للجهاز بالكامل.");
         DeveloperCredit.Text=T("Developed by Mohamed Elnaggar","تطوير محمد النجار");
