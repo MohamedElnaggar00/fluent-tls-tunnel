@@ -47,7 +47,7 @@ public sealed partial class MainWindow : Window
         };
         Host.Text=profile.Host; Port.Value=profile.Port; Sni.Text=profile.Sni; Username.Text=profile.Username;
         RouteWindows.IsChecked=profile.RouteWindows; Password.Password=PasswordStore.Load(profile);
-        SocksPort.Value=profile.SocksPort; VerifyTls.IsChecked=profile.VerifyTls; Dns.Text=profile.DnsServers; UseDns.IsChecked=profile.UseDns;
+        SocksPort.Value=profile.SocksPort; VerifyTls.IsChecked=profile.VerifyTls; LoadDnsFields(profile.DnsServers); UseDns.IsChecked=profile.UseDns;
         foreach(var a in DnsManager.Adapters()) Adapter.Items.Add(a);
         Adapter.SelectedItem=Adapter.Items.Cast<DnsManager.AdapterInfo>().FirstOrDefault(a=>a.Index==profile.AdapterIndex);
         Host.LostFocus+=(_,_)=>RefreshPassword();Username.LostFocus+=(_,_)=>RefreshPassword();Port.LostFocus+=(_,_)=>RefreshPassword();
@@ -132,7 +132,7 @@ public sealed partial class MainWindow : Window
         RoutingTitle.Text=T("Routing & DNS","التوجيه وDNS"); SocksPort.Header=T("Local SOCKS5 port","منفذ SOCKS5 المحلي");
         ProxyHint.Text=T("Automatic mode routes Windows TCP traffic through a virtual adapter. DNS goes through SSH. UDP apps are not supported; Windows VPN badges are not registered. Turn it off to use SOCKS5 manually.","يوجّه الوضع التلقائي اتصال TCP في ويندوز عبر محول افتراضي، وDNS عبر SSH. لا تُدعم تطبيقات UDP، ولا يُسجّل مؤشر VPN الرسمي. عطّله لاستخدام SOCKS5 يدويًا.");
         UseDns.Content=T("Use custom DNS while connected (administrator permission)","استخدام DNS مخصص أثناء الاتصال (يتطلب صلاحية المسؤول)");
-        Adapter.Header=T("Network adapter","محول الشبكة"); Dns.Header=T("DNS server IP addresses","عناوين IP لخوادم DNS");
+        Adapter.Header=T("Network adapter","محول الشبكة"); Dns.Header=T("Primary DNS server IP address","عنوان IP لخادم DNS الأساسي"); DnsSecondary.Header=T("Secondary DNS server IP address (optional)","عنوان IP لخادم DNS الثانوي (اختياري)");
         DnsHint.Text=T("Manual SOCKS mode only. Automatic mode always uses DNS through SSH. Changes the selected Windows adapter, not remote SOCKS DNS. The old settings are backed up and restored on disconnect. After a crash, use Restore DNS. Windows asks for administrator approval each time.","خاص بوضع SOCKS اليدوي. يستخدم الوضع التلقائي DNS عبر SSH. يغيّر محول ويندوز المحدد، لا DNS البعيد في SOCKS. تُحفظ الإعدادات السابقة وتُستعاد عند قطع الاتصال. بعد تعطل التطبيق، اضغط استعادة DNS. يطلب ويندوز موافقة المسؤول لكل تغيير.");
         RestoreRouting.Content=T("Restore Windows routing","استعادة توجيه ويندوز");
         RestoreDns.Content=T("Restore DNS","استعادة DNS"); LogsPanel.Header=T("Connection log","سجل الاتصال");
@@ -157,14 +157,23 @@ public sealed partial class MainWindow : Window
         StatusGlyph.Glyph=connected?"\uE73E":"\uE72E";
         if(connected) StatusGlyph.Foreground=(Brush)Application.Current.Resources["SystemFillColorSuccessBrush"]; else StatusGlyph.ClearValue(FontIcon.ForegroundProperty);
         Status.Severity=connected?InfoBarSeverity.Success:InfoBarSeverity.Informational;
-        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns,RestoreRouting,RouteWindows}) control.IsEnabled=!busy && tunnel==null;
+        foreach(var control in new Control[]{Host,Port,Sni,Username,Password,SocksPort,VerifyTls,UseDns,Adapter,Dns,Save,Import,Export,Language,Theme,RestoreDns,RestoreRouting,RouteWindows,DnsSecondary}) control.IsEnabled=!busy && tunnel==null;
+    }
+    void LoadDnsFields(string addresses)
+    {
+        var values=addresses.Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
+        Dns.Text=values.FirstOrDefault()??"";
+        // Preserve legacy extra values visibly instead of silently dropping them.
+        DnsSecondary.Text=string.Join(", ",values.Skip(1));
     }
     Profile ReadProfile()
     {
         profile.Host=Host.Text.Trim(); profile.Port=checked((int)Port.Value); profile.Sni=Sni.Text.Trim(); profile.Username=Username.Text.Trim();
         profile.RouteWindows=RouteWindows.IsChecked==true;
         profile.SocksPort=checked((int)SocksPort.Value); profile.VerifyTls=VerifyTls.IsChecked==true; profile.UseDns=UseDns.IsChecked==true;
-        profile.DnsServers=Dns.Text.Trim(); profile.AdapterIndex=(Adapter.SelectedItem as DnsManager.AdapterInfo)?.Index??0;
+        var primary=Dns.Text.Trim();var secondary=DnsSecondary.Text.Trim();
+        if((primary.Length>0&&!System.Net.IPAddress.TryParse(primary,out _))||(secondary.Length>0&&!System.Net.IPAddress.TryParse(secondary,out _)))throw new ArgumentException(T("Enter one valid IP address in each DNS field.","أدخل عنوان IP صحيحًا واحدًا في كل خانة DNS."));
+        profile.DnsServers=string.Join(", ",new[]{primary,secondary}.Where(v=>v.Length>0)); profile.AdapterIndex=(Adapter.SelectedItem as DnsManager.AdapterInfo)?.Index??0;
         if(profile.RouteWindows)profile.UseDns=false;
         profile.Validate(); return profile;
     }
@@ -260,7 +269,7 @@ public sealed partial class MainWindow : Window
             p.UseDns=false; p.AdapterIndex=0; p.RouteWindows=false; p.Validate(); Profile.ParseDns(p.DnsServers);
             var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Import these settings?","هل تريد استيراد هذه الإعدادات؟"),Content=$"{p.Host}:{p.Port}\nSNI: {p.Sni}\nSSH: {p.Username}\nSOCKS: {p.SocksPort}\nDNS: {p.DnsServers}",PrimaryButtonText=T("Import","استيراد"),CloseButtonText=T("Cancel","إلغاء"),DefaultButton=ContentDialogButton.Close};
             if(await dialog.ShowAsync()!=ContentDialogResult.Primary) return;
-            Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;Dns.Text=p.DnsServers;UseDns.IsChecked=false;
+            Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;LoadDnsFields(p.DnsServers);UseDns.IsChecked=false;
 
             Status.Message=T("Config imported. Review it before connecting. DNS changes remain off.","استُوردت الإعدادات. راجعها قبل الاتصال. يبقى تغيير DNS معطّلًا.");
         } catch(Exception ex) { Status.Message=ex.Message; }
