@@ -25,18 +25,34 @@ public sealed class TlsBridge : IAsyncDisposable
             deadline.CancelAfter(TimeSpan.FromSeconds(30));
             local = await listener.AcceptTcpClientAsync(deadline.Token);
             listener.Stop(); // Only the SSH connection can use this bridge.
-            remote = new TcpClient { NoDelay = true };
-            await remote.ConnectAsync(p.Host,p.Port,deadline.Token);
-            using var tls = new SslStream(remote.GetStream(),false,(_,_,_,errors) => !p.VerifyTls || errors == SslPolicyErrors.None);
-            await tls.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+#pragma warning disable SYSLIB0039
+            var attempts = new[] { SslProtocols.Tls12 | SslProtocols.Tls13, SslProtocols.Tls12, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12 };
+            SslStream? tls = null;
+            for (int i = 0; i < attempts.Length && tls == null; i++)
             {
-                TargetHost = p.Sni,
-                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
-            },deadline.Token);
+                remote?.Dispose();
+                remote = new TcpClient { NoDelay = true };
+                await remote.ConnectAsync(p.Host,p.Port,deadline.Token);
+                var candidate = new SslStream(remote.GetStream(),false,(_,_,_,errors) => !p.VerifyTls || errors == SslPolicyErrors.None);
+                try
+                {
+                    await candidate.AuthenticateAsClientAsync(new SslClientAuthenticationOptions { TargetHost = p.Sni, EnabledSslProtocols = attempts[i] },deadline.Token);
+                    tls = candidate;
+                    log("TLS: connected with " + candidate.SslProtocol + ", " + candidate.NegotiatedCipherSuite);
+                }
+                catch (Exception e) when (i < attempts.Length - 1 && !stop.IsCancellationRequested && !deadline.IsCancellationRequested && (e is System.Security.Authentication.AuthenticationException || e is IOException))
+                {
+                    candidate.Dispose();
+                    log("TLS: handshake with " + attempts[i] + " was rejected (" + e.Message + "). Trying a more compatible mode.");
+                }
+                catch { candidate.Dispose(); throw; }
+            }
+            using var tlsOwner = tls!;
+#pragma warning restore SYSLIB0039
             log("tls-ready");
             using var pair = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
-            var upstream = local.GetStream().CopyToAsync(tls,pair.Token);
-            var downstream = tls.CopyToAsync(local.GetStream(),pair.Token);
+            var upstream = local.GetStream().CopyToAsync(tlsOwner,pair.Token);
+            var downstream = tlsOwner.CopyToAsync(local.GetStream(),pair.Token);
             await Task.WhenAny(upstream,downstream);
             pair.Cancel();
             try { await Task.WhenAll(upstream,downstream); } catch (OperationCanceledException) { }
