@@ -28,7 +28,8 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         SystemBackdrop = new MicaBackdrop();
-        ExtendsContentIntoTitleBar=true;SetTitleBar(AppTitleBar);
+        ExtendsContentIntoTitleBar=true;AppWindow.TitleBar.PreferredHeightOption=TitleBarHeightOption.Collapsed;SetTitleBar(AppTitleBar);
+        AppWindow.Changed+=(_,_)=>UpdateCaptionGlyph();
         var hwnd=WinRT.Interop.WindowNative.GetWindowHandle(this);
         var appWindow=AppWindow.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(hwnd));
         appWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory,"1-AppIcon.ico"));
@@ -99,6 +100,10 @@ public sealed partial class MainWindow : Window
             }
         }
     }
+    void MinimizeCaptionClick(object sender,RoutedEventArgs e){if(AppWindow.Presenter is OverlappedPresenter p)p.Minimize();}
+    void MaximizeCaptionClick(object sender,RoutedEventArgs e){if(AppWindow.Presenter is OverlappedPresenter p){if(p.State==OverlappedPresenterState.Maximized)p.Restore();else p.Maximize();UpdateCaptionGlyph();}}
+    void UpdateCaptionGlyph(){if(AppWindow.Presenter is OverlappedPresenter p)MaximizeCaptionGlyph.Glyph=p.State==OverlappedPresenterState.Maximized?"\uE923":"\uE922";}
+    void CloseCaptionClick(object sender,RoutedEventArgs e)=>Close();
     void NavChanged(NavigationView sender,NavigationViewSelectionChangedEventArgs e)
     {
         var page=(e.SelectedItem as NavigationViewItem)?.Tag?.ToString()??"connection";
@@ -110,6 +115,9 @@ public sealed partial class MainWindow : Window
     void Localize()
     {
         Root.FlowDirection=Arabic?FlowDirection.RightToLeft:FlowDirection.LeftToRight;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MinimizeCaption,T("Minimize","تصغير"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MaximizeCaption,T("Maximize or restore","تكبير أو استعادة"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(CloseCaption,T("Close","إغلاق"));
         Root.RequestedTheme=profile.Theme switch {"light"=>ElementTheme.Light,"dark"=>ElementTheme.Dark,_=>ElementTheme.Default};
         ProfileGroup.Text=T("CONNECTION PROFILE","إعدادات الاتصال");SettingsTitle.Text=T("Settings","الإعدادات");AppearanceGroup.Text=T("APPEARANCE AND LANGUAGE","المظهر واللغة");RoutingGroup.Text=T("ROUTING AND DNS","التوجيه وDNS");
         ConnectionNav.Content=T("Connection","الاتصال"); SettingsNav.Content=T("Settings","الإعدادات"); AboutNav.Content=T("About","حول التطبيق");
