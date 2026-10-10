@@ -33,7 +33,7 @@
      <TextBlock x:Name="ProxyHint" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
      <CheckBox x:Name="UseDns"/>
      <ComboBox x:Name="Adapter" HorizontalAlignment="Stretch"/>
-     <TextBox x:Name="Dns" PlaceholderText="94.140.14.14, 94.140.15.15" FlowDirection="LeftToRight"/>
+     <TextBox x:Name="Dns" PlaceholderText="1.1.1.1, 1.0.0.1" FlowDirection="LeftToRight"/>
      <TextBlock x:Name="DnsHint" TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
      <Button x:Name="RestoreDns" Click="RestoreDnsClick"/>
     </StackPanel>
