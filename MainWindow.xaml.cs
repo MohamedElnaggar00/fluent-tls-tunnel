@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window
     bool loaded, busy, closing, allowClose;
     bool previewConnected;
     Task? connectingTask;
+    TaskCompletionSource? connectionFinished;
     readonly System.Diagnostics.Stopwatch connectedClock=new();
     readonly SemaphoreSlim stopping = new(1,1);
     bool Arabic => profile.Language == "ar" || (profile.Language == "system" && CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar");
@@ -40,9 +41,9 @@ public sealed partial class MainWindow : Window
             if(!exitRequested && !Environment.GetCommandLineArgs().Any(a=>a.StartsWith("--preview="))) {appWindow.Hide();return;}
             if(closing) return;
             closing=true;
-            try { await StopAsync(); }
+            try {if(busy){cancel?.Cancel();if(connectionFinished!=null)await connectionFinished.Task;} await StopAsync(); }
             catch(Exception ex) { Log(ex.Message); closing=false; return; }
-            tray?.Dispose();allowClose=true; Close();
+            tray?.Dispose();trayMenu?.Shutdown();allowClose=true; Close();
         };
         Host.Text=profile.Host; Port.Value=profile.Port; Sni.Text=profile.Sni; Username.Text=profile.Username;
         RouteWindows.IsChecked=profile.RouteWindows; Password.Password=PasswordStore.Load(profile);
@@ -75,6 +76,11 @@ public sealed partial class MainWindow : Window
 
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
             Localize();
+            if(mode=="tray")
+            {
+                trayMenu=new TrayMenuWindow(TrayCommand);
+                var showMenu=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};showMenu.Tick+=(_,_)=>{showMenu.Stop();trayMenu.ShowAt(700,650,profile.Theme,Arabic,false,false);};showMenu.Start();
+            }
         }
     }
     void NavChanged(NavigationView sender,NavigationViewSelectionChangedEventArgs e)
@@ -172,7 +178,7 @@ public sealed partial class MainWindow : Window
             var p=ReadProfile();
             if(DnsManager.Pending) throw new InvalidOperationException(T("Restore the pending DNS backup first.","استعد إعدادات DNS السابقة أولًا."));
             if(Password.Password.Length==0) throw new ArgumentException(T("Enter your password.","أدخل كلمة المرور."));
-            PasswordStore.Save(p,Password.Password);p.Save(); busy=true; Status.Message=""; cancel=new(); tunnel=new(); SetState();
+            PasswordStore.Save(p,Password.Password);p.Save();connectionFinished=new(TaskCreationOptions.RunContinuationsAsynchronously); busy=true; Status.Message=""; cancel=new(); tunnel=new(); SetState();
             var password = Password.Password;
             connectingTask=Task.Run(()=>tunnel.ConnectAsync(p,password,ConfirmKey,Log,cancel.Token));
             await connectingTask;
@@ -184,7 +190,7 @@ public sealed partial class MainWindow : Window
             Status.Message=p.RouteWindows?T("Windows TCP routing is active. UDP is not supported.","توجيه TCP في ويندوز نشط. لا يُدعم UDP."):$"SOCKS5 · 127.0.0.1:{p.SocksPort}";
         }
         catch(Exception ex) { Log(ex.Message); try { await StopAsync(); } catch(Exception restore) { Log(restore.Message); } Status.Message=ex.Message; }
-        finally { busy=false; connectingTask=null; SetState(); }
+        finally { busy=false; connectingTask=null; SetState();connectionFinished?.TrySetResult(); }
     }
     async Task StopAsync()
     {
