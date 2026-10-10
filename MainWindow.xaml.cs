@@ -13,10 +13,11 @@ public sealed partial class MainWindow : Window
     CancellationTokenSource? cancel;
     bool loaded, busy, closing, allowClose;
     Task? connectingTask;
+    readonly System.Diagnostics.Stopwatch connectedClock=new();
     readonly SemaphoreSlim stopping = new(1,1);
     bool Arabic => profile.Language == "ar" || (profile.Language == "system" && CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar");
     string T(string en,string ar) => Arabic ? ar : en;
-    readonly DispatcherTimer heartbeat = new() { Interval=TimeSpan.FromSeconds(2) };
+    readonly DispatcherTimer heartbeat = new() { Interval=TimeSpan.FromSeconds(1) };
     public MainWindow()
     {
         InitializeComponent();
@@ -42,7 +43,7 @@ public sealed partial class MainWindow : Window
         Theme.SelectedIndex=profile.Theme switch {"light"=>1,"dark"=>2,_=>0};
         loaded=true; Localize();
         if(DnsManager.Pending) { Status.Severity=InfoBarSeverity.Warning; Status.Message=T("A DNS backup is pending. Restore DNS before a new connection.","توجد نسخة احتياطية لإعدادات DNS. استعد الإعدادات قبل اتصال جديد."); }
-        heartbeat.Tick += async (_,_) => { if(!busy && tunnel!=null && !tunnel.Connected) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
+        heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && !tunnel.Connected) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
         heartbeat.Start();
         var preview=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--preview="));
         if(preview!=null) { profile.Language=preview.Split('=')[1]; Language.SelectedIndex=profile.Language=="ar"?2:1; Localize(); }
@@ -77,6 +78,7 @@ public sealed partial class MainWindow : Window
         bool connected=tunnel?.Connected==true;
         ConnectLabel.Text=busy?T("Cancel","إلغاء"):connected?T("Connected · Disconnect","متصل · قطع الاتصال"):T("Connect","اتصال");
         ConnectIcon.Symbol=connected?Symbol.Accept:busy?Symbol.Cancel:Symbol.Link;
+        ConnectionTime.Visibility=connected?Visibility.Visible:Visibility.Collapsed; UpdateClock();
         if(connected)
         {
             Connect.Background=new SolidColorBrush(Windows.UI.Color.FromArgb(255,24,112,55));
@@ -135,6 +137,7 @@ public sealed partial class MainWindow : Window
             await connectingTask;
             cancel.Token.ThrowIfCancellationRequested();
             if(p.UseDns) await DnsManager.ApplyAsync(p.AdapterIndex,Profile.ParseDns(p.DnsServers));
+            connectedClock.Restart(); ShowConnectedNotification();
             Password.Password="";
             Status.Message=$"SOCKS5 · 127.0.0.1:{p.SocksPort}";
         }
@@ -150,7 +153,7 @@ public sealed partial class MainWindow : Window
         {
             if(tunnel!=null) { await Task.Run(async ()=>await tunnel.DisposeAsync()); tunnel=null; }
             if(DnsManager.Pending) await DnsManager.RestoreAsync();
-            cancel?.Dispose(); cancel=null; SetState();
+            cancel?.Dispose(); cancel=null; connectedClock.Reset(); SetState();
         }
         finally { stopping.Release(); }
     }
@@ -186,7 +189,8 @@ public sealed partial class MainWindow : Window
             p.UseDns=false; p.AdapterIndex=0; p.Validate(); Profile.ParseDns(p.DnsServers);
             var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Import these settings?","هل تريد استيراد هذه الإعدادات؟"),Content=$"{p.Host}:{p.Port}\nSNI: {p.Sni}\nSSH: {p.Username}\nSOCKS: {p.SocksPort}\nDNS: {p.DnsServers}",PrimaryButtonText=T("Import","استيراد"),CloseButtonText=T("Cancel","إلغاء"),DefaultButton=ContentDialogButton.Close};
             if(await dialog.ShowAsync()!=ContentDialogResult.Primary) return;
-            Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;Dns.Text=p.DnsServers;UseDns.IsChecked=false;Password.Password="";
+            Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;Dns.Text=p.DnsServers;UseDns.IsChecked=false;connectedClock.Restart(); ShowConnectedNotification();
+            Password.Password="";
             Status.Message=T("Config imported. Review it before connecting. DNS changes remain off.","استُوردت الإعدادات. راجعها قبل الاتصال. يبقى تغيير DNS معطّلًا.");
         } catch(Exception ex) { Status.Message=ex.Message; }
     }
@@ -206,6 +210,22 @@ public sealed partial class MainWindow : Window
         var secret=new PasswordBox {Header=T("Config password","كلمة مرور ملف الإعدادات")};
         var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Encrypted config","ملف إعدادات مشفّر"),Content=secret,PrimaryButtonText=T("Unlock","فتح"),CloseButtonText=T("Cancel","إلغاء")};
         return await dialog.ShowAsync()==ContentDialogResult.Primary?secret.Password:null;
+    }
+
+    void UpdateClock()
+    {
+        var elapsed=connectedClock.Elapsed;
+        ConnectionTime.Text=$"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+    }
+    void ShowConnectedNotification()
+    {
+        try
+        {
+            var notification=new Microsoft.Windows.AppNotifications.Builder.AppNotificationBuilder()
+                .AddText("Fluent TLS Tunnel").AddText(T("Connected","متصل")).BuildNotification();
+            Microsoft.Windows.AppNotifications.AppNotificationManager.Default.Show(notification);
+        }
+        catch { Log(T("Windows notifications are unavailable.","إشعارات ويندوز غير متاحة.")); }
     }
 
 }
