@@ -36,11 +36,11 @@ try {
   Save-State
   $prefix=$ip.ToString()+$(if($ip.AddressFamily -eq 'InterNetwork'){ '/32' }else{'/128'})
   Add-OwnedRoute $prefix $route.InterfaceIndex $route.NextHop
-  $start=@{FilePath=(Join-Path $PSScriptRoot 'Routing/tun2socks.exe');ArgumentList=@('-device','tun://Fluent_TLS_Tunnel','-proxy',"socks5://127.0.0.1:$SocksPort",'-loglevel','warn');PassThru=$true;WindowStyle='Hidden';RedirectStandardError=(Join-Path $Session 'engine-error.txt')}
+  $start=@{FilePath=(Join-Path $PSScriptRoot 'Routing/tun2socks.exe');ArgumentList=@('-device','tun://Fluent_TLS_Tunnel','-proxy',"socks5://127.0.0.1:$SocksPort",'-loglevel','warn');PassThru=$true;WindowStyle='Hidden';RedirectStandardError=(Join-Path $Session 'engine-error.txt');RedirectStandardOutput=(Join-Path $Session 'engine-output.txt')}
   $engine=Start-Process @start
   $state.EngineId=$engine.Id;$state.EngineTicks=$engine.StartTime.ToUniversalTime().Ticks;$state.Adapter='Fluent_TLS_Tunnel';Save-State
   $adapter=$null
-  for($i=0;$i -lt 100;$i++){if($engine.HasExited){throw 'TUN engine stopped'};$adapter=Get-NetAdapter -Name 'Fluent_TLS_Tunnel' -ErrorAction SilentlyContinue;if($adapter){break};Start-Sleep -Milliseconds 100}
+  for($i=0;$i -lt 100;$i++){if($engine.HasExited){throw ('TUN engine stopped: '+(Get-Content (Join-Path $Session 'engine-error.txt') -Raw -ErrorAction SilentlyContinue)+(Get-Content (Join-Path $Session 'engine-output.txt') -Raw -ErrorAction SilentlyContinue))};$adapter=Get-NetAdapter -Name 'Fluent_TLS_Tunnel' -ErrorAction SilentlyContinue;if($adapter){break};Start-Sleep -Milliseconds 100}
   if(!$adapter){throw 'Windows did not create the tunnel adapter'}
   New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress 198.18.0.1 -PrefixLength 30 -PolicyStore ActiveStore | Out-Null
   New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress fd7a:115c:a1e0::1 -PrefixLength 64 -PolicyStore ActiveStore | Out-Null
