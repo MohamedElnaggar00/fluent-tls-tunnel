@@ -27,6 +27,17 @@ jobs:
         run: |
           Copy-Item LICENSE,THIRD-PARTY-NOTICES.txt artifacts/dependent
           Copy-Item LICENSE,THIRD-PARTY-NOTICES.txt artifacts/portable
+      - name: Build three preview packages
+        shell: pwsh
+        run: |
+          New-Item artifacts/packages -ItemType Directory -Force | Out-Null
+          Compress-Archive artifacts/portable/* artifacts/packages/Fluent-TLS-Tunnel-portable.zip
+          $iscc='C:/Program Files (x86)/Inno Setup 6/ISCC.exe'
+          if(!(Test-Path $iscc)) {throw 'Inno Setup compiler is unavailable'}
+          & $iscc /DSourceDir=artifacts/portable /DFlavor=installer Installer.iss
+          if($LASTEXITCODE -ne 0) {throw 'Bundled installer compile failed'}
+          & $iscc /DSourceDir=artifacts/dependent /DFlavor=runtime-dependent /DDependent Installer.iss
+          if($LASTEXITCODE -ne 0) {throw 'Dependent installer compile failed'}
       - name: Capture UI previews
         shell: powershell
         run: ./Capture.ps1
