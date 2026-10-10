@@ -1,7 +1,7 @@
 #define AppName "Fluent TLS Tunnel"
 #define AppExe "FluentTlsTunnel.exe"
 #ifndef BuildVersion
-#define BuildVersion "0.1.2"
+#define BuildVersion "0.1.3"
 #endif
 #ifndef SourceDir
 #define SourceDir "artifacts\portable"
@@ -45,16 +45,43 @@ procedure InitializeWizard;
 begin
   WizardForm.WelcomeLabel2.Caption := WizardForm.WelcomeLabel2.Caption + #13#10#13#10 + 'brought to you by Instinct - https://instinct.com';
 end;
+function DesktopRuntimeInDir(Root: String): Boolean;
+var R: TFindRec;
+begin
+  Result := False;
+  if Root = '' then Exit;
+  if FindFirst(Root + '\shared\Microsoft.WindowsDesktop.App\8.*', R) then
+  begin
+    try
+      repeat
+        if (R.Attributes and 16) <> 0 then Result := True;
+      until Result or not FindNext(R);
+    finally
+      FindClose(R);
+    end;
+  end;
+end;
+function DesktopRuntimeInRegistry(RootKey: Integer): Boolean;
+var Names: TArrayOfString; I: Integer;
+begin
+  Result := False;
+  if RegGetValueNames(RootKey, 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App', Names) then
+    for I := 0 to GetArrayLength(Names)-1 do
+      if Pos('8.', Names[I]) = 1 then Result := True;
+end;
+function HasDesktopRuntime8: Boolean;
+begin
+  Result := DesktopRuntimeInRegistry(HKLM64) or DesktopRuntimeInRegistry(HKLM32)
+    or DesktopRuntimeInDir(ExpandConstant('{commonpf64}') + '\dotnet')
+    or DesktopRuntimeInDir(ExpandConstant('{commonpf32}') + '\dotnet')
+    or DesktopRuntimeInDir(GetEnv('DOTNET_ROOT'))
+    or DesktopRuntimeInDir(ExpandConstant('{localappdata}') + '\Microsoft\dotnet');
+end;
 function InitializeSetup: Boolean;
-var Versions: TArrayOfString; I: Integer;
 begin
   Result := True;
 #ifdef Dependent
-  Result := False;
-  if RegGetValueNames(HKLM64, 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App', Versions) then
-    for I := 0 to GetArrayLength(Versions)-1 do
-      if Pos('8.', Versions[I]) = 1 then Result := True;
-  if not Result then
-    MsgBox('This build requires the .NET 8 Desktop Runtime. Install it from https://dotnet.microsoft.com/download/dotnet/8.0 or use the bundled installer.', mbError, MB_OK);
+  if not HasDesktopRuntime8 then
+    Result := MsgBox('Setup could not find the .NET 8 Desktop Runtime (x64). The app will not start without it. Get it from https://dotnet.microsoft.com/download/dotnet/8.0 or use the bundled installer.' + #13#10#13#10 + 'Continue installing anyway?', mbError, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 #endif
 end;
