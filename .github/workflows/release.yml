@@ -1,4 +1,4 @@
-name: Publish approved pre-release
+name: Publish verified release
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.sha }}
+          ref: main
       - uses: actions/download-artifact@v4
         with:
           name: Fluent-TLS-Tunnel-preview
@@ -31,4 +31,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ inputs.tag }}" --target "${{ inputs.sha }}" --prerelease --title "Fluent TLS Tunnel ${{ inputs.tag }} - Preview" --notes-file RELEASE_NOTES.md verified-build/packages/Fluent-TLS-Tunnel-installer.exe verified-build/packages/Fluent-TLS-Tunnel-portable.zip verified-build/packages/Fluent-TLS-Tunnel-runtime-dependent.exe
+          test "$(gh api repos/${GITHUB_REPOSITORY}/actions/runs/${{ inputs.run_id }} --jq .head_sha)" = "${{ inputs.sha }}"
+          test "$(gh api repos/${GITHUB_REPOSITORY}/actions/runs/${{ inputs.run_id }} --jq .conclusion)" = "success"
+          test -f verified-build/routing-passed.txt
+          test "${{ inputs.tag }}" = "v0.1.2"
+          gh release create "${{ inputs.tag }}" --target "${{ inputs.sha }}" --title "Fluent TLS Tunnel ${{ inputs.tag }}" --notes-file RELEASE_NOTES.md verified-build/packages/Fluent-TLS-Tunnel-installer.exe verified-build/packages/Fluent-TLS-Tunnel-portable.zip verified-build/packages/Fluent-TLS-Tunnel-runtime-dependent.exe
