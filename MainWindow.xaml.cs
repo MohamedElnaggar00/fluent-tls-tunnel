@@ -46,7 +46,7 @@ public sealed partial class MainWindow : Window
             catch(Exception ex) { Log(ex.Message); closing=false; return; }
             heartbeat.Stop();
             // Arm the final process exit before closing the last UI surface.
-            _=Task.Run(async()=>{await Task.Delay(1500);Environment.Exit(0);});
+            Task.Run(async()=>{await Task.Delay(1500);Environment.Exit(0);});
             tray?.Dispose();trayMenu?.Shutdown();allowClose=true; Close();
         };
         Host.Text=profile.Host; Port.Value=profile.Port; Sni.Text=profile.Sni; Username.Text=profile.Username;
