@@ -71,11 +71,23 @@ public sealed partial class MainWindow : Window
             profile.Language=preview.Split('=')[1]; Language.SelectedIndex=profile.Language=="ar"?2:1;
             var mode=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--state="))?.Split('=')[1];
             previewConnected=mode=="connected";
-            if(mode=="settings") Nav.SelectedItem=SettingsNav;
+            if(mode=="settings"||mode=="updates"||mode?.StartsWith("update-")==true) Nav.SelectedItem=SettingsNav;
             if(mode=="about") Nav.SelectedItem=AboutNav;
 
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
             Localize();
+            if(mode?.StartsWith("update-")==true)
+            {
+                var state=mode.Substring(7);
+                string result=state switch {"checking"=>T("Checking...","جارٍ التحقق..."),"current"=>T($"You're up to date (v{CurrentVersion}).",$"أنت على أحدث إصدار (v{CurrentVersion})."),"new"=>T("Version 0.1.3-beta is available.","الإصدار 0.1.3-beta متاح."),"empty"=>T("No releases found yet.","لا توجد إصدارات بعد."),_=>T("Couldn't check for updates. Check your internet connection and try again.","تعذر التحقق من التحديثات. تحقق من اتصالك بالإنترنت وحاول مرة أخرى.")};
+                UpdateResultSettings.Text=UpdateResultAbout.Text=result;
+                CheckUpdatesSettings.IsEnabled=CheckUpdatesAbout.IsEnabled=state!="checking";
+                if(state=="new"){UpdateLinkSettings.Visibility=UpdateLinkAbout.Visibility=Visibility.Visible;}
+            }
+            if(mode=="updates"||mode?.StartsWith("update-")==true)
+            {
+                var showUpdates=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};showUpdates.Tick+=(_,_)=>{showUpdates.Stop();SettingsPage.ChangeView(null,double.MaxValue,null);};showUpdates.Start();
+            }
             if(mode=="tray")
             {
                 trayMenu=new TrayMenuWindow(TrayCommand);
@@ -100,8 +112,8 @@ public sealed partial class MainWindow : Window
         foreach(var heading in new[]{UpdatesHeadingSettings,UpdatesHeadingAbout})heading.Text=T("Updates","التحديثات");
         foreach(var note in new[]{UpdatesNoteSettings,UpdatesNoteAbout})note.Text=T("The app never checks for updates on its own. Press the button to check once, right now.","لا يتحقق التطبيق من التحديثات من تلقاء نفسه. اضغط الزر للتحقق مرة واحدة الآن.");
         foreach(var text in new[]{InstalledVersionSettings,InstalledVersionAbout})text.Text=T("Installed version: v","الإصدار المثبت: v")+CurrentVersion;
-        foreach(var button in new[]{CheckUpdatesSettings,CheckUpdatesAbout}){button.Content=T("Check for updates","التحقق من التحديثات");button.HorizontalAlignment=Arabic?HorizontalAlignment.Right:HorizontalAlignment.Left;}
-        foreach(var link in new[]{UpdateLinkSettings,UpdateLinkAbout}){link.Content=T("Open download page","فتح صفحة التنزيل");link.HorizontalAlignment=Arabic?HorizontalAlignment.Right:HorizontalAlignment.Left;}
+        foreach(var button in new[]{CheckUpdatesSettings,CheckUpdatesAbout}){button.Content=T("Check for updates","التحقق من التحديثات");button.HorizontalAlignment=HorizontalAlignment.Left;}
+        foreach(var link in new[]{UpdateLinkSettings,UpdateLinkAbout}){link.Content=T("Open download page","فتح صفحة التنزيل");link.HorizontalAlignment=HorizontalAlignment.Left;}
         VersionText.Text="v" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
         AboutDescription.Text=T("SSH over TLS with SNI, automatic Windows TCP routing and a local SOCKS5 proxy. UDP is not supported.","SSH عبر TLS مع SNI وتوجيه TCP تلقائي لويندوز ووكيل SOCKS5 محلي. لا يُدعم UDP.");
         DeveloperCredit.Text=T("Developed by Mohamed Elnaggar","تطوير محمد النجار");

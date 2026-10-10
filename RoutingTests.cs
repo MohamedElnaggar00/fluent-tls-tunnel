@@ -9,7 +9,7 @@ _=Task.Run(async()=>{while(true){var c=await socks.AcceptTcpClientAsync();_=Task
 var s=c.GetStream();var greet=new byte[3];await s.ReadExactlyAsync(greet);await s.WriteAsync(new byte[]{5,0});
 var h=new byte[4];await s.ReadExactlyAsync(h);int n=h[3]==1?4:h[3]==4?16:await Byte(s);var target=new byte[n+2];await s.ReadExactlyAsync(target);int port=(target[^2]<<8)|target[^1];
 await s.WriteAsync(new byte[]{5,0,0,1,127,0,0,1,0,0});
-if(port==53){Interlocked.Increment(ref dns);var size=new byte[2];await s.ReadExactlyAsync(size);var q=new byte[(size[0]<<8)|size[1]];await s.ReadExactlyAsync(q);q[2]=0x81;q[3]=0x80;q[6]=0;q[7]=1;var answer=q.Concat(new byte[]{0xc0,0x0c,0,1,0,1,0,0,0,30,0,4,203,0,113,10}).ToArray();await s.WriteAsync(new byte[]{(byte)(answer.Length>>8),(byte)answer.Length});await s.WriteAsync(answer);}
+if(port==53){Interlocked.Increment(ref dns);var size=new byte[2];await s.ReadExactlyAsync(size);var q=new byte[(size[0]<<8)|size[1]];await s.ReadExactlyAsync(q);q[2]=0x81;q[3]=0x80;q[6]=0;bool isA=q[^4]==0&&q[^3]==1;q[7]=(byte)(isA?1:0);var answer=isA?q.Concat(new byte[]{0xc0,0x0c,0,1,0,1,0,0,0,30,0,4,203,0,113,10}).ToArray():q;await s.WriteAsync(new byte[]{(byte)(answer.Length>>8),(byte)answer.Length});await s.WriteAsync(answer);}
 else{if(h[3]==4)Interlocked.Increment(ref ipv6);else Interlocked.Increment(ref ipv4);var b=new byte[4096];await s.ReadAsync(b);await s.WriteAsync(System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 12\r\nConnection: close\r\n\r\nTUN-TEST-OK!"));}
 }catch(Exception e){Console.WriteLine("Mock: "+e.Message);}});}});
 await using var route=new WindowsRouting();
