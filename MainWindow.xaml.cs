@@ -95,7 +95,7 @@ public sealed partial class MainWindow : Window
             if(mode=="tray")
             {
                 trayMenu=new TrayMenuWindow(TrayCommand);
-                var showMenu=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};showMenu.Tick+=(_,_)=>{showMenu.Stop();trayMenu.ShowAt(700,650,profile.Theme,Arabic,false,false);};showMenu.Start();
+                var showMenu=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};showMenu.Tick+=(_,_)=>{showMenu.Stop();trayMenu.ShowAt(700,650,profile.Theme,Arabic,false,false);trayMenu.AppWindow.Move(new Windows.Graphics.PointInt32(AppWindow.Position.X+AppWindow.Size.Width-250,AppWindow.Position.Y+AppWindow.Size.Height-210));};showMenu.Start();
             }
         }
     }
