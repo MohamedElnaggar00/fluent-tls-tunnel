@@ -107,7 +107,7 @@ public sealed class Profile
     public string Sni { get; set; } = "";
     public string Username { get; set; } = "";
     public int SocksPort { get; set; } = 1080;
-    public bool VerifyTls { get; set; } = true;
+    public bool VerifyTls { get; set; } = false;
     public string Language { get; set; } = "system";
     public string Theme { get; set; } = "system";
     public string Backdrop { get; set; } = "mica-alt";
