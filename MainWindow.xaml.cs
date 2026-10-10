@@ -58,7 +58,7 @@ public sealed partial class MainWindow : Window
             if(mode=="about") Nav.SelectedItem=AboutNav;
             if(mode!="profile") ProfilePanel.IsExpanded=false;
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
-            Localize(); ConnectButton.IsEnabled=false;
+            Localize();
         }
     }
     void NavChanged(NavigationView sender,NavigationViewSelectionChangedEventArgs e)
