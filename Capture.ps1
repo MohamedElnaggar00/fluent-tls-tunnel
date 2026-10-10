@@ -11,13 +11,13 @@ public class CaptureNative {
 '@
 New-Item artifacts/screenshots -ItemType Directory -Force | Out-Null
 foreach($lang in @('en','ar')) {
-foreach($state in @('home','profile','connected','settings','about')) {
+foreach($state in @('home','profile','connected','settings','about','tray')) {
  $app=Start-Process artifacts/portable/FluentTlsTunnel.exe -ArgumentList "--preview=$lang --state=$state" -PassThru
  try {
   for($i=0;$i -lt 30;$i++) {Start-Sleep -Milliseconds 500;$app.Refresh();if($app.MainWindowHandle -ne [IntPtr]::Zero){break};if($app.HasExited){throw 'Application exited before screenshot'}}
   if($app.MainWindowHandle -eq [IntPtr]::Zero){throw 'No application window'}
   [CaptureNative]::SetWindowPos($app.MainWindowHandle,[IntPtr]::Zero,12,12,1060,860,0x0040) | Out-Null
-  [CaptureNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null
+  if($state -ne 'tray'){[CaptureNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null}
   Start-Sleep -Seconds 2
   $rect=New-Object CaptureNative+RECT
   [CaptureNative]::GetWindowRect($app.MainWindowHandle,[ref]$rect) | Out-Null
