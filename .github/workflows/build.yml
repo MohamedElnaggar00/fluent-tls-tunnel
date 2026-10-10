@@ -45,6 +45,9 @@ jobs:
           if($LASTEXITCODE -ne 0) {throw 'Bundled installer compile failed'}
           & $iscc /DSourceDir=artifacts/dependent /DFlavor=runtime-dependent /DDependent Installer.iss
           if($LASTEXITCODE -ne 0) {throw 'Dependent installer compile failed'}
+      - name: Verify second launch restores the existing window and clean shutdown
+        shell: pwsh
+        run: ./TestSingleInstance.ps1
       - name: Capture UI previews
         shell: powershell
         run: ./Capture.ps1
