@@ -189,7 +189,7 @@ public sealed partial class MainWindow : Window
             p.UseDns=false; p.AdapterIndex=0; p.Validate(); Profile.ParseDns(p.DnsServers);
             var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Import these settings?","هل تريد استيراد هذه الإعدادات؟"),Content=$"{p.Host}:{p.Port}\nSNI: {p.Sni}\nSSH: {p.Username}\nSOCKS: {p.SocksPort}\nDNS: {p.DnsServers}",PrimaryButtonText=T("Import","استيراد"),CloseButtonText=T("Cancel","إلغاء"),DefaultButton=ContentDialogButton.Close};
             if(await dialog.ShowAsync()!=ContentDialogResult.Primary) return;
-            Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;Dns.Text=p.DnsServers;UseDns.IsChecked=false;connectedClock.Restart(); ShowConnectedNotification();
+            Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;Dns.Text=p.DnsServers;UseDns.IsChecked=false;
             Password.Password="";
             Status.Message=T("Config imported. Review it before connecting. DNS changes remain off.","استُوردت الإعدادات. راجعها قبل الاتصال. يبقى تغيير DNS معطّلًا.");
         } catch(Exception ex) { Status.Message=ex.Message; }
