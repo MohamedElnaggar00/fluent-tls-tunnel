@@ -28,7 +28,7 @@ foreach($state in @('home','profile','connected','settings','updates','update-ch
   if($state -ne 'tray'){[CaptureNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null}
   Start-Sleep -Seconds 2
   if($state -eq 'home' -or $state -eq 'connected'){
-   $expected=if($state -eq 'connected'){if($lang -eq 'ar'){'قطع الاتصال'}else{'Disconnect'}}else{if($lang -eq 'ar'){'اتصال'}else{'Connect'}}
+   $expected=if($state -eq 'connected'){if($lang -eq 'ar'){(-join ([char[]](0x642,0x637,0x639,0x20,0x627,0x644,0x627,0x62A,0x635,0x627,0x644)))}else{'Disconnect'}}else{if($lang -eq 'ar'){(-join ([char[]](0x627,0x62A,0x635,0x627,0x644)))}else{'Connect'}}
    $root=[System.Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
    $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$expected)
    $element=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
