@@ -1,5 +1,7 @@
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
@@ -25,6 +27,14 @@ foreach($state in @('home','profile','connected','settings','updates','update-ch
   [CaptureNative]::SetWindowPos($app.MainWindowHandle,[IntPtr]::Zero,12,12,$width,$height,0x0040) | Out-Null
   if($state -ne 'tray'){[CaptureNative]::SetForegroundWindow($app.MainWindowHandle) | Out-Null}
   Start-Sleep -Seconds 2
+  if($state -eq 'home' -or $state -eq 'connected'){
+   $expected=if($state -eq 'connected'){if($lang -eq 'ar'){'قطع الاتصال'}else{'Disconnect'}}else{if($lang -eq 'ar'){'اتصال'}else{'Connect'}}
+   $root=[System.Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
+   $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$expected)
+   $element=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+   if(!$element){throw "Connection action did not show $expected in $lang/$state"}
+   "PASS connection action $lang/$state = $expected"|Tee-Object artifacts/button-state-tests.txt -Append
+  }
   $rect=New-Object CaptureNative+RECT
   [CaptureNative]::DwmGetWindowAttribute($app.MainWindowHandle,9,[ref]$rect,16) | Out-Null
   $bitmap=New-Object System.Drawing.Bitmap(($rect.Right-$rect.Left),($rect.Bottom-$rect.Top))
