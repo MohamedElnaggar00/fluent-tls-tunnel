@@ -8,7 +8,7 @@ function Snapshot {
 }
 $before=Snapshot
 & dotnet run --project RoutingTests.csproj -c Release
-if($LASTEXITCODE -ne 0){Get-ChildItem (Join-Path $env:LOCALAPPDATA 'FluentTlsTunnel') -Recurse -Filter 'engine-*.txt' | ForEach-Object {Get-Content $_.FullName};throw 'Routing integration tests failed'}
+if($LASTEXITCODE -ne 0){Get-ChildItem (Join-Path $env:LOCALAPPDATA 'FluentTlsTunnel') -Recurse -Filter '*-*.txt' | ForEach-Object {Get-Content $_.FullName};throw 'Routing integration tests failed'}
 Start-Sleep -Seconds 2
 $after=Snapshot
 if($before -ne $after){$before|Set-Content artifacts/routing-before.json;$after|Set-Content artifacts/routing-after.json;throw 'Route/DNS state was not restored exactly'}
@@ -27,3 +27,5 @@ try {
  if($before -ne (Snapshot)){throw 'Crash watchdog did not restore original route/DNS state'}
  'PASS crash watchdog restores route and DNS state' | Tee-Object artifacts/routing-tests.txt -Append
 } finally {if(!$owner.HasExited){Stop-Process -Id $owner.Id -Force};if($helper -and !$helper.HasExited){Set-Content "$session/stop" 'stop';$helper.WaitForExit(20000)|Out-Null}}
+
+'passed' | Set-Content artifacts/routing-passed.txt
