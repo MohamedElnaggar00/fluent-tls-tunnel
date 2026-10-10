@@ -25,7 +25,7 @@ public sealed partial class MainWindow : Window
         SystemBackdrop = new MicaBackdrop();
         var hwnd=WinRT.Interop.WindowNative.GetWindowHandle(this);
         var appWindow=AppWindow.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(hwnd));
-        appWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory,"AppIcon.ico"));
+        appWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory,"1-AppIcon.ico"));
         appWindow.Resize(new Windows.Graphics.SizeInt32(820,720));
         appWindow.Closing += async (_,e) =>
         {
@@ -53,16 +53,25 @@ public sealed partial class MainWindow : Window
             profile.Language=preview.Split('=')[1]; Language.SelectedIndex=profile.Language=="ar"?2:1;
             var mode=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--state="))?.Split('=')[1];
             previewConnected=mode=="connected";
+            if(mode=="settings") Pages.SelectedItem=SettingsPage;
+            if(mode=="about") AboutClick(this,new RoutedEventArgs());
             if(mode!="profile") ProfilePanel.IsExpanded=false;
             if(previewConnected) {profile.Host="demo.example";connectedClock.Start();}
             Localize(); ConnectButton.IsEnabled=false;
         }
     }
+    void AboutClick(object sender,RoutedEventArgs e) { Pages.Visibility=Visibility.Collapsed; AboutPanel.Visibility=Visibility.Visible; }
+    void AboutBackClick(object sender,RoutedEventArgs e) { AboutPanel.Visibility=Visibility.Collapsed; Pages.Visibility=Visibility.Visible; }
     void Localize()
     {
         Root.FlowDirection=Arabic?FlowDirection.RightToLeft:FlowDirection.LeftToRight;
         Root.RequestedTheme=profile.Theme switch {"light"=>ElementTheme.Light,"dark"=>ElementTheme.Dark,_=>ElementTheme.Default};
         ConnectionPage.Header=T("Connection","الاتصال"); SettingsPage.Header=T("Settings","الإعدادات");
+        AboutButtonLabel.Text=T("About","حول التطبيق");
+        VersionText.Text="v" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "0.0.0");
+        AboutDescription.Text=T("A Fluent Windows SSH-over-TLS client with SNI and a local SOCKS5 proxy. This is not a full-device VPN.","عميل SSH عبر TLS لواجهة ويندوز Fluent، مع SNI ووكيل SOCKS5 محلي. ليس شبكة VPN للجهاز بالكامل.");
+        DeveloperCredit.Text=T("Developed by Mohamed Elnaggar","تطوير محمد النجار");
+        RepositoryLink.Content="GitHub Repo Link";
         Language.Header=T("Language","اللغة"); Theme.Header=T("Appearance","المظهر");
         Subtitle.Text=T("A private path. One simple connection.","مسار خاص. اتصال بسيط.");
         ProfilePanel.Header=T("Connection profile","إعدادات الاتصال"); AdvancedPanel.Header=T("Advanced · DNS & routing","خيارات متقدمة · DNS والتوجيه");
