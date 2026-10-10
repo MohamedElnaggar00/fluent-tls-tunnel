@@ -58,6 +58,7 @@ jobs:
           git config user.email 'MohamedElnaggar00@users.noreply.github.com'
           git checkout --orphan ui-review
           git rm -rf .
+          git clean -fdx
           Copy-Item "$shots/*" .
           git add *.png
           git commit -m 'Windows CI UI review screenshots'
