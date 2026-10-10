@@ -1,35 +1,21 @@
-## English
+# Fluent TLS Tunnel v0.1.2
 
-Update to the Fluent TLS Tunnel preview for Windows x64. Still a **pre-release**.
+## Features and fixes
+- Automatic Windows-wide TCP routing through the SSH-over-TLS tunnel, with IPv4 and IPv6 support and DNS carried through SSH.
+- Upstream TLS endpoint bypass to keep the tunnel connection outside its own routes.
+- Restore the original routes and DNS policy on disconnect, with an owner-process watchdog and recovery journal for interrupted sessions.
+- System tray menu with Connect/Disconnect, Settings, About and Close. Closing the main window keeps the app in the tray.
+- Save SSH passwords securely with Windows Credential Manager.
+- Larger Fluent window with a labeled navigation rail, grouped settings, an inline connection profile and a collapsible connection log.
+- Mica, Mica Alt and Acrylic background options. Arabic layouts use left-side window caption buttons.
+- Separate primary and optional secondary DNS address inputs.
+- Manual inline update checks in Settings and About, including pre-releases, with download links opened only by an explicit click.
+- TLS certificate verification is unchecked for new profiles; the recommendation and protection warning remain visible.
 
-### Downloads
-- **Fluent-TLS-Tunnel-installer.exe**: recommended. Includes the .NET runtime; installs per user without an administrator requirement.
-- **Fluent-TLS-Tunnel-portable.zip**: unzip and run FluentTlsTunnel.exe. Includes the runtime.
-- **Fluent-TLS-Tunnel-runtime-dependent.exe**: smaller installer; requires the .NET 8 Desktop Runtime (x64).
+## Downloads
+- `Fluent-TLS-Tunnel-installer.exe`: bundled-runtime installer, recommended.
+- `Fluent-TLS-Tunnel-portable.zip`: bundled-runtime portable app. Unzip and run `FluentTlsTunnel.exe`.
+- `Fluent-TLS-Tunnel-runtime-dependent.exe`: smaller installer, requires .NET 8 Desktop Runtime x64.
 
-### Changes
-- The connected state now matches the Windows 11 Settings style: a compact card with a status check, host and SOCKS5 address, and the connection timer.
-- The Connect/Disconnect button uses the standard WinUI 3 accent style and default size instead of the large custom green button.
-- The status banner appears only when there is a message or an error.
-- The Save profile button uses the standard button height.
-
-Everything else is unchanged from v0.1.0, including the notes: this is a SOCKS5 tunnel, not a full-device VPN; custom DNS has not yet been runtime-tested on a real adapter; the binaries are unsigned, so Windows may show a SmartScreen warning.
-
-## العربية
-
-تحديث للنسخة التجريبية من Fluent TLS Tunnel لويندوز بمعمارية x64. ما زال الإصدار **pre-release**.
-
-### التنزيلات
-- **Fluent-TLS-Tunnel-installer.exe**: الخيار الموصى به. يتضمن بيئة .NET ويُثبَّت لحساب المستخدم دون اشتراط صلاحية المسؤول.
-- **Fluent-TLS-Tunnel-portable.zip**: فك الضغط وشغّل FluentTlsTunnel.exe. يتضمن بيئة التشغيل.
-- **Fluent-TLS-Tunnel-runtime-dependent.exe**: مُثبّت أصغر يحتاج .NET 8 Desktop Runtime بمعمارية x64.
-
-### التغييرات
-- أصبحت حالة الاتصال بنفس نمط تطبيق الإعدادات في ويندوز 11: بطاقة مدمجة فيها علامة الحالة وعنوان الخادم وSOCKS5 وعداد مدة الاتصال.
-- زر الاتصال وقطع الاتصال يستخدم نمط WinUI 3 القياسي وحجمه الافتراضي بدل الزر الأخضر الكبير المخصص.
-- يظهر شريط الحالة فقط عند وجود رسالة أو خطأ.
-- زر حفظ الإعدادات بالارتفاع القياسي.
-
-بقية المزايا والملاحظات كما في v0.1.0: الأداة نفق SOCKS5 وليست VPN للجهاز بالكامل، ولم يُختبر DNS المخصص بعد على محول فعلي، والملفات غير موقّعة رقميًا وقد يظهر تحذير SmartScreen.
-
-brought to you by [Instinct](https://instinct.com)
+## Compatibility
+Windows x64. Automatic routing needs administrator approval. SSH dynamic forwarding carries TCP only; general UDP traffic is not supported, and the app does not register the native Windows VPN badge. The binaries are unsigned and may trigger a SmartScreen warning.
