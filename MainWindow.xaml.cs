@@ -68,7 +68,7 @@ public sealed partial class MainWindow : Window
         }
         if(DnsManager.Pending) { Status.Severity=InfoBarSeverity.Warning; Status.Message=T("A DNS backup is pending. Restore DNS before a new connection.","توجد نسخة احتياطية لإعدادات DNS. استعد الإعدادات قبل اتصال جديد."); }
         Status.RegisterPropertyChangedCallback(InfoBar.MessageProperty,(_,_)=>Status.IsOpen=!string.IsNullOrEmpty(Status.Message));
-        heartbeat.Tick += async (_,_) => { UpdateClock(); if(!busy && tunnel!=null && (!tunnel.Connected || (routing!=null && !routing.Healthy))) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
+        heartbeat.Tick += async (_,_) => { UpdateClock(); routing?.PollDiagnostics(); if(!busy && tunnel!=null && (!tunnel.Connected || (routing!=null && !routing.Healthy))) { Log(T("Connection lost.","انقطع الاتصال.")); try { await StopAsync(); } catch(Exception e) { Log(e.Message); } } };
         heartbeat.Start();
         var preview=Environment.GetCommandLineArgs().FirstOrDefault(a=>a.StartsWith("--preview="));
         if(preview!=null)
@@ -244,7 +244,7 @@ public sealed partial class MainWindow : Window
             connectingTask=Task.Run(()=>tunnel.ConnectAsync(p,password,ConfirmKey,Log,cancel.Token));
             await connectingTask;
             cancel.Token.ThrowIfCancellationRequested();
-            if(p.RouteWindows){routing=new();await routing.StartAsync(tunnel.RemoteAddress??throw new InvalidOperationException("TLS endpoint unavailable"),p.SocksPort,cancel.Token,tunnel.LocalAddress,Log);}
+            if(p.RouteWindows){routing=new();await routing.StartAsync(tunnel.RemoteAddress??throw new InvalidOperationException("TLS endpoint unavailable"),p.SocksPort,cancel.Token,tunnel.LocalAddress,Log,Profile.ParseDns(p.DnsServers));}
             if(p.UseDns && !p.RouteWindows) await DnsManager.ApplyAsync(p.AdapterIndex,Profile.ParseDns(p.DnsServers));
             connectedClock.Restart(); ShowConnectedNotification();
 
