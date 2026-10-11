@@ -28,6 +28,8 @@ jobs:
           $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
           if ($v -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid version' }
           "value=$v" >> $env:GITHUB_OUTPUT
+      - name: Test secure password persistence
+        run: dotnet run --project PasswordStoreTests.csproj -c Release
       - name: Publish fully self-contained app
         shell: pwsh
         run: |
