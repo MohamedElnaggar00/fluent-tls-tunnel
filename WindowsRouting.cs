@@ -119,7 +119,7 @@ public sealed class WindowsRouting : IAsyncDisposable
         using var client=new HttpClient(handler);
         using var body=new ByteArrayContent(query);body.Headers.ContentType=new MediaTypeHeaderValue("application/dns-message");
         using var response=await client.PostAsync("https://1.1.1.1/dns-query",body,ct);response.EnsureSuccessStatusCode();
-        var answer=await response.Content.ReadAsByteArrayAsync(ct);if(answer.Length<12||answer.Length>65535)throw new IOException("Invalid HTTPS DNS answer");
+        var answer=await response.Content.ReadAsByteArrayAsync(ct);if(answer.Length<12||answer.Length>65535||(answer[2]&128)==0)throw new IOException("Invalid HTTPS DNS answer");
         // HTTP correlates the response; restore the Windows query ID.
         answer[0]=query[0];answer[1]=query[1];return answer;
     }
