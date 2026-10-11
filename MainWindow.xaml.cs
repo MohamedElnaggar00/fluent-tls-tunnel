@@ -239,7 +239,9 @@ public sealed partial class MainWindow : Window
             var p=ReadProfile();
             if(DnsManager.Pending) throw new InvalidOperationException(T("Restore the pending DNS backup first.","استعد إعدادات DNS السابقة أولًا."));
             if(Password.Password.Length==0) throw new ArgumentException(T("Enter your password.","أدخل كلمة المرور."));
-            PasswordStore.Save(p,Password.Password);p.Save();connectionFinished=new(TaskCreationOptions.RunContinuationsAsynchronously); busy=true; Status.Message=""; cancel=new(); tunnel=new(); SetState();
+            try { PasswordStore.Save(p,Password.Password); }
+            catch { Log(T("Password could not be saved securely. Connecting without saving it.","تعذر حفظ كلمة المرور بأمان. سيستمر الاتصال دون حفظها.")); }
+            p.Save();connectionFinished=new(TaskCreationOptions.RunContinuationsAsynchronously); busy=true; Status.Message=""; cancel=new(); tunnel=new(); SetState();
             var password = Password.Password;
             connectingTask=Task.Run(()=>tunnel.ConnectAsync(p,password,ConfirmKey,Log,cancel.Token));
             await connectingTask;
