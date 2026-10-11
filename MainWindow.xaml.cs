@@ -160,7 +160,7 @@ public sealed partial class MainWindow : Window
         Adapter.Header=T("Network adapter","محول الشبكة"); Dns.Header=T("Primary DNS server IP address","عنوان IP لخادم DNS الأساسي"); DnsSecondary.Header=T("Secondary DNS server IP address (optional)","عنوان IP لخادم DNS الثانوي (اختياري)");
         DnsHint.Text=T("Manual SOCKS mode only. Automatic mode always uses DNS through SSH. Changes the selected Windows adapter, not remote SOCKS DNS. The old settings are backed up and restored on disconnect. After a crash, use Restore DNS. Windows asks for administrator approval each time.","خاص بوضع SOCKS اليدوي. يستخدم الوضع التلقائي DNS عبر SSH. يغيّر محول ويندوز المحدد، لا DNS البعيد في SOCKS. تُحفظ الإعدادات السابقة وتُستعاد عند قطع الاتصال. بعد تعطل التطبيق، اضغط استعادة DNS. يطلب ويندوز موافقة المسؤول لكل تغيير.");
         RestoreRouting.Content=T("Restore Windows routing","استعادة توجيه ويندوز");
-        RestoreDns.Content=T("Restore DNS","استعادة DNS"); LogsPanel.Header=T("Connection log","سجل الاتصال");
+        RestoreDns.Content=T("Restore DNS","استعادة DNS"); LogsPanel.Header=T("Connection log","سجل الاتصال"); ClearLog.Content=T("Clear log","مسح السجل");
         Import.Content=T("Import config","استيراد إعدادات"); Export.Content=T("Export config","تصدير إعدادات");
         Save.Content=T("Save profile","حفظ الإعدادات"); SetState();
     }
@@ -208,6 +208,7 @@ public sealed partial class MainWindow : Window
         if(profile.RouteWindows)profile.UseDns=false;
         profile.Validate(); return profile;
     }
+    void ClearLogClick(object sender,RoutedEventArgs e) => Logs.Text="";
     void Log(string message) => DispatcherQueue.TryEnqueue(()=>
     {
         if(message=="tls-ready") message=T("TLS ready.","اتصال TLS جاهز.");
