@@ -1,3 +1,12 @@
+# v0.1.6 - endpoint route discovery
+
+- Use Windows GetBestRoute2 with the source address of the TLS socket that already connected. This removes reliance on Find-NetRoute/default-route CIM queries and supports valid virtual, PPP and on-link uplinks.
+- Keep a longest-prefix/combined-metric route-table fallback if native lookup fails. Never choose the tunnel itself or loopback.
+- Show route/interface inventories, query errors, TLS source address, selected interface index and gateway in the connection log, including failures.
+- Test native selection when PowerShell route/interface discovery fails, as well as route/DNS restore and existing routing, UI and installer regressions.
+
+His exact PC/network remains to be tested. No claim of a confirmed fix on that device; the earlier build did not cover its route-query failure.
+
 # Fluent TLS Tunnel v0.1.5
 
 ## Fixes
