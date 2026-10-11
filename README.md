@@ -40,7 +40,7 @@ Fluent TLS Tunnel puts an SSH connection inside a TLS connection with your chose
 
 **TCP routing, not a UDP VPN.** Automatic mode routes Windows IPv4 and IPv6 internet TCP connections through a temporary virtual adapter. DNS uses TCP through the SSH tunnel. UDP-only applications are not supported; QUIC-capable browsers can fall back to TCP. Local network routes and the TLS server endpoint remain direct. It does not register a native Windows VPN profile or badge. There is no persistent kill switch: when the tunnel disconnects, normal networking is restored. Use only servers and networks you are permitted to use.
 
-Existing routes and physical adapter DNS settings are not overwritten. An elevated watchdog removes only app-owned routes and DNS policy on disconnect or app crash. A restricted recovery journal is kept if cleanup fails; use **Restore Windows routing** in Settings. Existing Windows DNS policies are detected and automatic mode stops rather than replacing them. Automatic mode requires local DNS port 53 to be free.
+Existing routes and physical adapter DNS settings are not overwritten. An elevated watchdog removes only app-owned routes and DNS policy on disconnect or app crash. A restricted recovery journal is kept if cleanup fails; use **Restore Windows routing** in Settings. Existing Windows DNS policies for specific domains (such as Windows DNS resiliency) are preserved and do not block routing; automatic mode stops only if another catch-all DNS policy is active. Automatic mode requires local DNS port 53 to be free.
 
 ## Custom DNS
 
