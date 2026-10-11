@@ -13,9 +13,9 @@ public sealed class WindowsRouting : IAsyncDisposable
     int port;
     bool disposed;
     public bool Healthy => helper is {HasExited:false} && File.Exists(Path.Combine(session,"ready"));
-    public async Task StartAsync(string endpoint,int socksPort,CancellationToken ct)
+    public async Task StartAsync(string endpoint,int socksPort,CancellationToken ct,string? sourceAddress=null,Action<string>? log=null)
     {
-        _=IPAddress.Parse(endpoint); port=socksPort;
+        _=IPAddress.Parse(endpoint); if(sourceAddress!=null)_=IPAddress.Parse(sourceAddress); port=socksPort;
         if(port is <1024 or >65535) throw new ArgumentException("Invalid SOCKS port");
         session=Path.Combine(Profile.DataDir,"routing-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(session);
         try
@@ -24,16 +24,20 @@ public sealed class WindowsRouting : IAsyncDisposable
             _=UdpLoop();_=TcpLoop();
             var owner=Process.GetCurrentProcess();
             var script=Path.Combine(AppContext.BaseDirectory,"RoutingHelper.ps1");
-            var args=$"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -Owner {owner.Id} -OwnerTicks {owner.StartTime.ToUniversalTime().Ticks} -Endpoint {endpoint} -SocksPort {port} -Session \"{session}\"";
+            var args=$"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -Owner {owner.Id} -OwnerTicks {owner.StartTime.ToUniversalTime().Ticks} -Endpoint {endpoint} -SocksPort {port} {(sourceAddress!=null?"-SourceAddress "+sourceAddress:"")} -Session \"{session}\"";
             helper=Process.Start(new ProcessStartInfo("powershell.exe",args){UseShellExecute=true,Verb="runas",WindowStyle=ProcessWindowStyle.Hidden}) ?? throw new InvalidOperationException("Routing helper did not start");
+            int diagnosticLines=0;
+            void ReadDiagnostics(){try{var path=Path.Combine(session,"route-diagnostics.txt");if(File.Exists(path)){var lines=File.ReadAllLines(path);foreach(var line in lines.Skip(diagnosticLines))log?.Invoke("Routing: "+line);diagnosticLines=lines.Length;}}catch(IOException){}}
             var deadline=DateTime.UtcNow.AddSeconds(30);
             while(!File.Exists(Path.Combine(session,"ready")))
             {
+                ReadDiagnostics();
                 ct.ThrowIfCancellationRequested();
                 if(File.Exists(Path.Combine(session,"error.txt"))) throw new InvalidOperationException(File.ReadAllText(Path.Combine(session,"error.txt")));
                 if(helper.HasExited || DateTime.UtcNow>deadline) throw new InvalidOperationException("Windows routing did not become ready");
                 await Task.Delay(100,ct);
             }
+            ReadDiagnostics();
         }
         catch {await DisposeAsync();throw;}
     }
