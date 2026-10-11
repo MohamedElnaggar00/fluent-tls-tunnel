@@ -134,6 +134,7 @@ public sealed class Profile
     public int AdapterIndex { get; set; }
     public bool UseDns { get; set; }
     public bool RouteWindows { get; set; } = true;
+    public bool MaskValues { get; set; }
     public Dictionary<string,string> HostKeys { get; set; } = new();
     public static string DataDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FluentTlsTunnel");
     public string Endpoint => $"{Host.ToLowerInvariant()}:{Port}";
