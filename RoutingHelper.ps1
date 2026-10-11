@@ -1,4 +1,4 @@
-param([int]$Owner,[long]$OwnerTicks,[string]$Endpoint,[int]$SocksPort,[string]$Session)
+param([int]$Owner,[long]$OwnerTicks,[string]$Endpoint,[int]$SocksPort,[string]$Session,[string]$SourceAddress)
 $ErrorActionPreference='Stop'
 if($SocksPort -lt 1024 -or $SocksPort -gt 65535){throw 'Invalid port'}
 $ip=[System.Net.IPAddress]::Parse($Endpoint)
@@ -31,18 +31,9 @@ try {
   if(Get-NetAdapter -Name 'Fluent_TLS_Tunnel' -ErrorAction SilentlyContinue){throw 'A tunnel adapter is already present. Do not overwrite another session.'}
   # Preserve existing corporate/split DNS policy rather than silently overriding it.
   if(Get-DnsClientNrptRule -ErrorAction SilentlyContinue){throw 'Existing Windows DNS policy detected. Automatic routing cannot safely replace it.'}
-  # Find-NetRoute throws "The requested object could not be found" on some systems; fall back to the best default route.
-  $route=$null
-  try { $route=Find-NetRoute -RemoteIPAddress $ip.ToString() -ErrorAction Stop | Where-Object {$_.PSObject.Properties.Name -contains 'NextHop' -and $_.NextHop} | Select-Object -First 1 } catch { $route=$null }
-  if(!$route){
-    $defPrefix=if($ip.AddressFamily -eq 'InterNetwork'){'0.0.0.0/0'}else{'::/0'}
-    try {
-      $route=Get-NetRoute -DestinationPrefix $defPrefix -PolicyStore ActiveStore -ErrorAction Stop |
-        Where-Object {$_.InterfaceAlias -ne 'Fluent_TLS_Tunnel'} |
-        Sort-Object { $metric=0; try { $iface=Get-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily $_.AddressFamily -ErrorAction Stop; if($iface){$metric=$iface.InterfaceMetric} } catch { }; $_.RouteMetric + $metric } | Select-Object -First 1
-    } catch { $route=$null }
-  }
-  if(!$route){throw 'No physical route to the TLS server'}
+  $script:DiagnosticPath=Join-Path $Session 'route-diagnostics.txt'
+  . (Join-Path $PSScriptRoot 'RouteDiscovery.ps1')
+  $route=Resolve-EndpointRoute $ip.ToString() $SourceAddress
   Save-State
   $prefix=$ip.ToString()+$(if($ip.AddressFamily -eq 'InterNetwork'){ '/32' }else{'/128'})
   Add-OwnedRoute $prefix $route.InterfaceIndex $route.NextHop
@@ -92,7 +83,7 @@ try {
     $engine.Refresh();if($engine.HasExited){throw 'Tunnel routing engine stopped'}
     Start-Sleep -Milliseconds 250
   }
-} catch {Set-Content (Join-Path $Session 'error.txt') ($_.InvocationInfo.MyCommand.Name+': '+$_.Exception.Message)}
+} catch {Set-Content (Join-Path $Session 'error.txt') ('Routing: '+$_.Exception.Message+[Environment]::NewLine+$(if(Test-Path (Join-Path $Session 'route-diagnostics.txt')){Get-Content (Join-Path $Session 'route-diagnostics.txt') -Raw}))}
 finally {
   try {
     # Recovery also catches a crash between adding the DNS rule and saving its name.
