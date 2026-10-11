@@ -32,7 +32,12 @@ try {
   if($Owner -eq 0){return}
   if(Get-NetAdapter -Name 'Fluent_TLS_Tunnel' -ErrorAction SilentlyContinue){throw 'A tunnel adapter is already present. Do not overwrite another session.'}
   # Preserve existing corporate/split DNS policy rather than silently overriding it.
-  if(Get-DnsClientNrptRule -ErrorAction SilentlyContinue){throw 'Existing Windows DNS policy detected. Automatic routing cannot safely replace it.'}
+  # Remove only this app's own stale rules (tagged by Comment); never touch rules owned by Windows or other software.
+  @(Get-DnsClientNrptRule -ErrorAction SilentlyContinue) | Where-Object {$_.Comment -like 'FluentTlsTunnel-*'} | Remove-DnsClientNrptRule -Force -ErrorAction SilentlyContinue
+  # Specific-namespace rules (for example Windows DNS resiliency) remain more specific than our catch-all and are preserved.
+  # Only a foreign catch-all rule would conflict with ours.
+  $foreignCatchAll=@(Get-DnsClientNrptRule -ErrorAction SilentlyContinue) | Where-Object {@($_.Namespace) -contains '.'} | Select-Object -First 1
+  if($foreignCatchAll){throw ('A different Windows catch-all DNS policy is active ('+$foreignCatchAll.Name+'). Automatic routing cannot safely replace it.')}
   $script:DiagnosticPath=Join-Path $Session 'route-diagnostics.txt'
   . (Join-Path $PSScriptRoot 'RouteDiscovery.ps1')
   $route=Resolve-EndpointRoute $ip.ToString() $SourceAddress
