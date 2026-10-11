@@ -10,6 +10,8 @@ Check ($native.InterfaceIndex -gt 1) 'Real IPv4 native route index'
 $source=Get-NetIPAddress -InterfaceIndex $native.InterfaceIndex -AddressFamily IPv4|Where-Object AddressState -eq Preferred|Select-Object -First 1 -ExpandProperty IPAddress
 $constrained=Get-NativeEndpointRoute '1.1.1.1' $source
 Check ($constrained.InterfaceIndex -eq $native.InterfaceIndex) 'Connected source address constrains native route'
+$v6=Get-NativeEndpointRoute '::1' ''
+Check ($v6.InterfaceIndex -eq 1 -and $v6.NextHop -eq '::') 'Native IPv6 row layout and on-link next hop'
 function Get-NativeEndpointRoute {param($destination,$source) throw 'Simulated native failure'}
 function Get-NetIPInterface {param($AddressFamily,$ErrorAction) @([pscustomobject]@{InterfaceIndex=12;InterfaceAlias='PPP VPN';ConnectionState='Connected';InterfaceMetric=50},[pscustomobject]@{InterfaceIndex=22;InterfaceAlias='Wi-Fi';ConnectionState='Connected';InterfaceMetric=1},[pscustomobject]@{InterfaceIndex=30;InterfaceAlias='Fluent_TLS_Tunnel';ConnectionState='Connected';InterfaceMetric=1})}
 function Get-NetRoute {param($AddressFamily,$PolicyStore,$ErrorAction) @([pscustomobject]@{DestinationPrefix='0.0.0.0/0';InterfaceIndex=22;InterfaceAlias='Wi-Fi';NextHop='192.168.1.1';RouteMetric=1},[pscustomobject]@{DestinationPrefix='128.0.0.0/1';InterfaceIndex=12;InterfaceAlias='PPP VPN';NextHop='0.0.0.0';RouteMetric=5},[pscustomobject]@{DestinationPrefix='141.98.233.74/32';InterfaceIndex=30;InterfaceAlias='Fluent_TLS_Tunnel';NextHop='0.0.0.0';RouteMetric=1})}
