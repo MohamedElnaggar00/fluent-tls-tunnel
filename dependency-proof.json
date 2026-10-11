@@ -1,0 +1,18 @@
+[
+  {
+    "ModuleName": "hostfxr.dll",
+    "FileName": "D:\\a\\fluent-tls-tunnel\\fluent-tls-tunnel\\publish\\hostfxr.dll"
+  },
+  {
+    "ModuleName": "coreclr.dll",
+    "FileName": "D:\\a\\fluent-tls-tunnel\\fluent-tls-tunnel\\publish\\coreclr.dll"
+  },
+  {
+    "ModuleName": "Microsoft.WindowsAppRuntime.dll",
+    "FileName": "D:\\a\\fluent-tls-tunnel\\fluent-tls-tunnel\\publish\\Microsoft.WindowsAppRuntime.dll"
+  },
+  {
+    "ModuleName": "Microsoft.WinUI.dll",
+    "FileName": "D:\\a\\fluent-tls-tunnel\\fluent-tls-tunnel\\publish\\Microsoft.WinUI.dll"
+  }
+]
