@@ -6,7 +6,7 @@
   <Platforms>x64</Platforms><PlatformTarget>x64</PlatformTarget><RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   <UseWinUI>true</UseWinUI><EnableMsixTooling>true</EnableMsixTooling><WindowsPackageType>None</WindowsPackageType>
   <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained><SelfContained>true</SelfContained>
-  <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><Version>0.1.8</Version>
+  <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><Version>0.1.9</Version>
   <Product>Fluent TLS Tunnel</Product><Authors>Mohamed Elnaggar</Authors>
  </PropertyGroup>
  <ItemGroup><Compile Remove="Core/**/*.cs;Tests/**/*.cs;TunnelCore.cs;CoreTests.cs;RoutingTests.cs;ConfigCrypto.cs;PasswordStoreTests.cs;SecurePasswordFile.cs" /><Page Remove="Tests/**/*.xaml" /></ItemGroup>
