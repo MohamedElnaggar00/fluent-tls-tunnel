@@ -14,7 +14,7 @@ var san=new SubjectAlternativeNameBuilder();san.AddIpAddress(IPAddress.Parse("1.
 certRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true,false,0,true));
 using var generated=certRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1),DateTimeOffset.UtcNow.AddDays(1));
 using var cert=new X509Certificate2(generated.Export(X509ContentType.Pfx),(string?)null,X509KeyStorageFlags.Exportable);
-var socks=new TcpListener(IPAddress.Loopback,19080);socks.Start();int ipv4=0,ipv6=0,dns=0;var dnsTargets=new List<string>();bool denyDns=false;int doh=0;bool denyTun=false;
+var socks=new TcpListener(IPAddress.Loopback,19080);socks.Start();int ipv4=0,ipv6=0,dns=0;var dnsTargets=new List<string>();bool denyDns=false;int doh=0;
 _=Task.Run(async()=>{while(true){var c=await socks.AcceptTcpClientAsync();_=Task.Run(async()=>{using(c)try{
 var s=c.GetStream();var greet=new byte[3];await s.ReadExactlyAsync(greet);await s.WriteAsync(new byte[]{5,0});
 var h=new byte[4];await s.ReadExactlyAsync(h);int n=h[3]==1?4:h[3]==4?16:await Byte(s);var target=new byte[n+2];await s.ReadExactlyAsync(target);int port=(target[^2]<<8)|target[^1];
@@ -25,12 +25,12 @@ if(port==443){
  var header=new List<byte>();while(header.Count<16384){int v=await Byte(tls);header.Add((byte)v);if(header.Count>=4&&Encoding.ASCII.GetString(header.TakeLast(4).ToArray())=="\r\n\r\n")break;}
  var text=Encoding.ASCII.GetString(header.ToArray());Check(text.StartsWith("POST /dns-query"),"DoH uses POST wireformat");
  int size=int.Parse(text.Split("\r\n").Single(x=>x.StartsWith("Content-Length:",StringComparison.OrdinalIgnoreCase)).Split(':')[1].Trim());
- var q=new byte[size];await tls.ReadExactlyAsync(q);q[0]=0;q[1]=0;q[2]=0x81;q[3]=0x80;q[7]=1;
- var answer=q.Concat(new byte[]{0xc0,0x0c,0,1,0,1,0,0,0,30,0,4,203,0,113,10}).ToArray();
+ var q=new byte[size];await tls.ReadExactlyAsync(q);q[0]=0;q[1]=0;q[2]=0x81;q[3]=0x80;bool isA=q[^4]==0&&q[^3]==1;q[7]=(byte)(isA?1:0);
+ var answer=isA?q.Concat(new byte[]{0xc0,0x0c,0,1,0,1,0,0,0,30,0,4,203,0,113,10}).ToArray():q;
  await tls.WriteAsync(Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/dns-message\r\nContent-Length: {answer.Length}\r\nConnection: close\r\n\r\n"));await tls.WriteAsync(answer);Interlocked.Increment(ref doh);
 }
 else if(port==53){lock(dnsTargets)dnsTargets.Add(new IPAddress(target[..^2]).ToString());Interlocked.Increment(ref dns);var size=new byte[2];await s.ReadExactlyAsync(size);var q=new byte[(size[0]<<8)|size[1]];await s.ReadExactlyAsync(q);q[2]=0x81;q[3]=0x80;q[6]=0;bool isA=q[^4]==0&&q[^3]==1;q[7]=(byte)(isA?1:0);var answer=isA?q.Concat(new byte[]{0xc0,0x0c,0,1,0,1,0,0,0,30,0,4,203,0,113,10}).ToArray():q;await s.WriteAsync(new byte[]{(byte)(answer.Length>>8),(byte)answer.Length});await s.WriteAsync(answer);}
-else{if(denyTun&&port==80){await Task.Delay(15000);return;}if(h[3]==4)Interlocked.Increment(ref ipv6);else Interlocked.Increment(ref ipv4);var b=new byte[4096];await s.ReadAsync(b);await s.WriteAsync(System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 12\r\nConnection: close\r\n\r\nTUN-TEST-OK!"));}
+else{if(h[3]==4)Interlocked.Increment(ref ipv6);else Interlocked.Increment(ref ipv4);var b=new byte[4096];await s.ReadAsync(b);await s.WriteAsync(System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 12\r\nConnection: close\r\n\r\nTUN-TEST-OK!"));}
 }catch(Exception e){Console.WriteLine("Mock: "+e.Message);}});}});
 var diagnostics=new List<string>();
 await using var route=new WindowsRouting();
