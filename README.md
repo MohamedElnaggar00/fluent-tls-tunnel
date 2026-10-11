@@ -94,3 +94,14 @@ MIT-licensed application. SSH uses [SSH.NET](https://github.com/sshnet/SSH.NET) 
 تُحفظ كلمات المرور في مدير بيانات اعتماد ويندوز، ولا تُصدّر مع الإعدادات. تحتوي ملفات الإعدادات على عناوين الخوادم وأسماء المستخدمين؛ تعامل معها بوصفها معلومات خاصة. المشروع قيد التطوير، ولا يُعد إصدارًا مستقرًا بعد.
 
 تطوير محمد النجار. مقدم إليكم من [Instinct](https://instinct.com).
+
+
+## Download options
+
+Each release provides exactly three Windows x64 downloads:
+
+- **Portable ZIP:** extract all files and run the app.
+- **Installer:** installs the app with .NET, Windows App SDK and VC runtime files included.
+- **Full offline ZIP:** the same installer, named `Install.exe`, plus Microsoft's original offline installers for .NET Desktop Runtime, Windows App Runtime and Visual C++ x64.
+
+No separate runtime download is needed to run the app. The system-runtime installers in the full offline kit are optional. Keep every extracted portable file together.
