@@ -48,6 +48,9 @@ function Test-RoutePrefix([string]$destination,[string]$prefix) {
   } catch {return $false}
 }
 function Resolve-EndpointRoute([string]$destination,[string]$source) {
+  $destIp=[Net.IPAddress]::Parse($destination)
+  if($destIp.IsIPv4MappedToIPv6){Write-RouteDiagnostic "Mapped endpoint normalized: $destination";$destination=$destIp.MapToIPv4().ToString()}
+  if($source){$srcIp=[Net.IPAddress]::Parse($source);if($srcIp.IsIPv4MappedToIPv6){$source=$srcIp.MapToIPv4().ToString()}}
   $family=if(([Net.IPAddress]::Parse($destination)).AddressFamily -eq 'InterNetwork'){'IPv4'}else{'IPv6'}
   Write-RouteDiagnostic "Endpoint=$destination TLS-source=$source AddressFamily=$family"
   foreach($query in @('interfaces','routes')) {
