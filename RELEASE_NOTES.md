@@ -1,3 +1,12 @@
+# v0.1.7
+
+- Test remote SOCKS TCP and DNS before applying Windows routes, then test TCP through the TUN. Restore routes if the same TCP target works through SOCKS but fails through Windows routing.
+- Use the configured DNS addresses. Report DNS failures instead of silently dropping them.
+- For the default Cloudflare DNS only, fall back from blocked TCP/53 to DNS over HTTPS through SSH/SOCKS. Never send fallback DNS over the physical network.
+- Show tun2socks logs, effective routes and DNS request/answer/failure counters in the connection log.
+
+The real server and PC still need an on-device test. Connection alone is not proof of working internet.
+
 # v0.1.6 - endpoint route discovery
 
 - Normalize IPv4-mapped IPv6 socket endpoints to IPv4 before route discovery; an IPv4 connection must not require an IPv6 default route.
