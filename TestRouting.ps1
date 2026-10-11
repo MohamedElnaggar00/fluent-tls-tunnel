@@ -29,14 +29,15 @@ try {
 } finally {if(!$owner.HasExited){Stop-Process -Id $owner.Id -Force};if($helper -and !$helper.HasExited){Set-Content "$session/stop" 'stop';$helper.WaitForExit(20000)|Out-Null}}
 
 # Exercise the production helper on real Windows networking while only replacing endpoint-route lookup.
-foreach($mode in @('empty','throws','all-cim-fail')) {
+foreach($mode in @('empty','throws','all-cim-fail','mapped-v4')) {
  $owner=Start-Process powershell.exe -ArgumentList '-NoProfile -Command Start-Sleep -Seconds 120' -PassThru
  $session=Join-Path $env:TEMP ('FluentFallback-'+[guid]::NewGuid());New-Item $session -ItemType Directory|Out-Null
  $wrapper=Join-Path $session 'fallback.ps1'
  # Literal mock source, then invoke the unchanged production helper in the same script scope.
  $mock=if($mode -eq 'throws'){'function Find-NetRoute {param($RemoteIPAddress,$ErrorAction) throw "The requested object could not be found"}'}else{'function Find-NetRoute {param($RemoteIPAddress,$ErrorAction) return $null}'}
  if($mode -eq 'all-cim-fail'){$mock+='; function Get-NetRoute {param($DestinationPrefix,$PolicyStore,$AddressFamily,$InterfaceIndex,$ErrorAction) if($AddressFamily){throw "Simulated CIM route query failure"}; NetTCPIP\Get-NetRoute @PSBoundParameters}; function Get-NetIPInterface {param($InterfaceIndex,$AddressFamily,$ErrorAction) throw "Simulated CIM interface query failure"}'}
- @($mock,"& '$PWD/RoutingHelper.ps1' -Owner $($owner.Id) -OwnerTicks $($owner.StartTime.ToUniversalTime().Ticks) -Endpoint '192.0.2.74' -SocksPort 19080 -Session '$session'")|Set-Content $wrapper
+ $testEndpoint=if($mode -eq 'mapped-v4'){'::ffff:192.0.2.74'}else{'192.0.2.74'}
+ @($mock,"& '$PWD/RoutingHelper.ps1' -Owner $($owner.Id) -OwnerTicks $($owner.StartTime.ToUniversalTime().Ticks) -Endpoint '$testEndpoint' -SocksPort 19080 -Session '$session'")|Set-Content $wrapper
  $helper=$null
  try {
   $helper=Start-Process powershell.exe -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',$wrapper) -PassThru
