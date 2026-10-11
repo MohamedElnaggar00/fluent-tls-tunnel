@@ -49,7 +49,7 @@ await using(var blocked=new WindowsRouting()){
  try{await blocked.StartAsync("1.1.1.1",19080,CancellationToken.None,log:Console.WriteLine,dnsServers:new[]{"9.9.9.9"});throw new Exception("Blocked DNS was incorrectly reported ready");}
  catch(IOException e) when(e.Message.Contains("configured DNS")){Check(!blocked.Healthy,"Blocked remote DNS cannot activate Windows routes");}
 }
-using(var store=new X509Store(StoreName.Root,StoreLocation.CurrentUser)){
+using(var store=new X509Store(StoreName.Root,StoreLocation.LocalMachine)){
  store.Open(OpenFlags.ReadWrite);store.Add(cert);
  try{
   await using var fallback=new WindowsRouting();
