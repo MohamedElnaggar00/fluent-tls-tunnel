@@ -10,8 +10,9 @@ public sealed class TlsBridge : IAsyncDisposable
     readonly CancellationTokenSource stop = new();
     Task? pump;
     TcpClient? local, remote;
-    public string? RemoteAddress => (remote?.Client.RemoteEndPoint as IPEndPoint)?.Address.ToString();
-    public string? LocalAddress => (remote?.Client.LocalEndPoint as IPEndPoint)?.Address.ToString();
+    public static IPAddress NormalizeAddress(IPAddress address) => address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
+    public string? RemoteAddress => remote?.Client.RemoteEndPoint is IPEndPoint endpoint ? NormalizeAddress(endpoint.Address).ToString() : null;
+    public string? LocalAddress => remote?.Client.LocalEndPoint is IPEndPoint endpoint ? NormalizeAddress(endpoint.Address).ToString() : null;
     public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
     public void Start(Profile profile, Action<string> log)
     {
