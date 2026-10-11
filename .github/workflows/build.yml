@@ -16,6 +16,9 @@ jobs:
           dotnet-version: 8.0.x
       - name: Test TLS, SNI and validation
         run: dotnet run --project CoreTests.csproj -c Release
+      - name: Test native endpoint route selection
+        shell: powershell
+        run: ./TestRouteDiscovery.ps1
       - name: Test Windows TCP routing and exact restore
         id: routing
         continue-on-error: true
