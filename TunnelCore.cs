@@ -11,6 +11,7 @@ public sealed class TlsBridge : IAsyncDisposable
     Task? pump;
     TcpClient? local, remote;
     public string? RemoteAddress => (remote?.Client.RemoteEndPoint as IPEndPoint)?.Address.ToString();
+    public string? LocalAddress => (remote?.Client.LocalEndPoint as IPEndPoint)?.Address.ToString();
     public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
     public void Start(Profile profile, Action<string> log)
     {
@@ -77,6 +78,7 @@ public sealed class Tunnel : IAsyncDisposable
     SshClient? ssh;
     ForwardedPortDynamic? socks;
     public string? RemoteAddress => bridge?.RemoteAddress;
+    public string? LocalAddress => bridge?.LocalAddress;
     public bool Connected => ssh?.IsConnected == true && socks?.IsStarted == true;
     public async Task ConnectAsync(Profile p, string password, Func<string,string,bool,Task<bool>> confirmKey, Action<string> log, CancellationToken ct)
     {
