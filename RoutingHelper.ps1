@@ -2,6 +2,8 @@ param([int]$Owner,[long]$OwnerTicks,[string]$Endpoint,[int]$SocksPort,[string]$S
 $ErrorActionPreference='Stop'
 if($SocksPort -lt 1024 -or $SocksPort -gt 65535){throw 'Invalid port'}
 $ip=[System.Net.IPAddress]::Parse($Endpoint)
+if($ip.IsIPv4MappedToIPv6){$ip=$ip.MapToIPv4()}
+if($SourceAddress){$sourceIp=[Net.IPAddress]::Parse($SourceAddress);if($sourceIp.IsIPv4MappedToIPv6){$SourceAddress=$sourceIp.MapToIPv4().ToString()}}
 $root=Join-Path $env:ProgramData 'FluentTlsTunnel'
 New-Item $root -ItemType Directory -Force | Out-Null
 # Only elevated helpers may alter the recovery journal.
