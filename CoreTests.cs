@@ -5,6 +5,8 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using FluentTlsTunnel.Core;
 static void Check(bool value,string label) { if(!value) throw new Exception(label); Console.WriteLine("PASS " + label); }
+Check(TlsBridge.NormalizeAddress(IPAddress.Parse("::ffff:141.98.233.74")).ToString()=="141.98.233.74","IPv4-mapped TLS endpoint is IPv4 for routing");
+Check(TlsBridge.NormalizeAddress(IPAddress.Parse("2001:db8::1")).ToString()=="2001:db8::1","Native IPv6 TLS endpoint remains IPv6");
 Check(Profile.ParseDns("94.140.14.14, 94.140.15.15").Length==2,"DNS IP parsing");
 try { Profile.ParseDns("1.1.1.1; Stop-Process"); throw new Exception("injection accepted"); } catch(ArgumentException) { Console.WriteLine("PASS DNS injection rejected"); }
 var profile=new Profile {Host="127.0.0.1",Port=443,Sni="test.example",Username="test",VerifyTls=false}; profile.Validate();
