@@ -39,6 +39,8 @@ public sealed partial class MainWindow : Window
         {
             if(allowClose) return;
             e.Cancel=true;
+            // The close button hides the window to the tray; the tray menu Quit command requests the real exit.
+            if(!exitRequested && tray!=null){AppWindow.Hide();return;}
             exitRequested=true;
             if(closing) return;
             closing=true;
@@ -298,10 +300,10 @@ public sealed partial class MainWindow : Window
             var file=await picker.PickSingleFileAsync(); if(file==null) return;
             if((await file.GetBasicPropertiesAsync()).Size>65536) throw new ArgumentException(T("Config file is too large.","ملف الإعدادات كبير جدًا."));
             var content=await Windows.Storage.FileIO.ReadTextAsync(file);
-            string? secret=null; if(ConfigCrypto.Encrypted(content)) {var answer=await ImportPassword(); if(answer==null) return; secret=answer;}
+            string? secret=null; bool maskValues=ConfigCrypto.Encrypted(content); if(maskValues) {var answer=await ImportPassword(); if(answer==null) return; secret=answer;}
             var p=ConfigCrypto.Decode(content,secret);
             p.UseDns=false; p.AdapterIndex=0; p.RouteWindows=false; p.Validate(); Profile.ParseDns(p.DnsServers);
-            var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Import these settings?","هل تريد استيراد هذه الإعدادات؟"),Content=$"{p.Host}:{p.Port}\nSNI: {p.Sni}\nSSH: {p.Username}\nSOCKS: {p.SocksPort}\nDNS: {p.DnsServers}",PrimaryButtonText=T("Import","استيراد"),CloseButtonText=T("Cancel","إلغاء"),DefaultButton=ContentDialogButton.Close};
+            var dialog=new ContentDialog {XamlRoot=Root.XamlRoot,Title=T("Import these settings?","هل تريد استيراد هذه الإعدادات؟"),Content=maskValues?"*****:*****\nSNI: *****\nSSH: *****\nSOCKS: *****\nDNS: *****":$"{p.Host}:{p.Port}\nSNI: {p.Sni}\nSSH: {p.Username}\nSOCKS: {p.SocksPort}\nDNS: {p.DnsServers}",PrimaryButtonText=T("Import","استيراد"),CloseButtonText=T("Cancel","إلغاء"),DefaultButton=ContentDialogButton.Close};
             if(await dialog.ShowAsync()!=ContentDialogResult.Primary) return;
             Host.Text=p.Host;Port.Value=p.Port;Sni.Text=p.Sni;Username.Text=p.Username;SocksPort.Value=p.SocksPort;VerifyTls.IsChecked=p.VerifyTls;LoadDnsFields(p.DnsServers);UseDns.IsChecked=false;
 
