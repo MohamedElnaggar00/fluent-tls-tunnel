@@ -1,5 +1,6 @@
 # v0.1.6 - endpoint route discovery
 
+- Normalize IPv4-mapped IPv6 socket endpoints to IPv4 before route discovery; an IPv4 connection must not require an IPv6 default route.
 - Use Windows GetBestRoute2 with the source address of the TLS socket that already connected. This removes reliance on Find-NetRoute/default-route CIM queries and supports valid virtual, PPP and on-link uplinks.
 - Keep a longest-prefix/combined-metric route-table fallback if native lookup fails. Never choose the tunnel itself or loopback.
 - Show route/interface inventories, query errors, TLS source address, selected interface index and gateway in the connection log, including failures.
