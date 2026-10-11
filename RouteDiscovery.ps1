@@ -59,7 +59,7 @@ function Resolve-EndpointRoute([string]$destination,[string]$source) {
   }
   try {
     $native=Get-NativeEndpointRoute $destination $source
-    if($native.InterfaceIndex -le 0){throw 'Native route has no interface index'}
+    if($native.InterfaceIndex -le 1){throw 'Native route has no usable non-loopback interface index'}
     # Get-NetIPInterface can itself fail on affected Windows installations. Native
     # route selection is still authoritative; no hardware-adapter requirement.
     try {$iface=Get-NetIPInterface -InterfaceIndex $native.InterfaceIndex -AddressFamily $family -ErrorAction Stop
