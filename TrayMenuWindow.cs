@@ -90,7 +90,7 @@ sealed class TrayMenuWindow : Window
         AddItem(ar ? "الإعدادات" : "Settings", "\uE713", 2);
         AddItem(ar ? "حول التطبيق" : "About", "\uE946", 3);
         _list.Children.Add(new Border { Height = 1, Margin = new Thickness(4,3,4,3), Background = new SolidColorBrush(Windows.UI.Color.FromArgb(40,128,128,128)) });
-        AddItem(ar ? "إغلاق" : "Close", "\uE7E8", 4);
+        AddItem(ar ? "إنهاء" : "Quit", "\uE7E8", 4);
 
         double dpi = GetDpiForWindow(_hwnd) / 96.0;
         if (dpi < 1) dpi = 1;
