@@ -8,6 +8,14 @@ using FluentTlsTunnel;
 using FluentTlsTunnel.Core;
 if(!OperatingSystem.IsWindows())return;
 if(args.Contains("--owner")){await Task.Delay(Timeout.Infinite);return;}
+Environment.SetEnvironmentVariable("FLUENT_TLS_SKIP_NAME_PROBE","1");
+{
+ var aaaa=new byte[]{0x12,0x34,1,0,0,1,0,0,0,0,0,0,7,101,120,97,109,112,108,101,3,99,111,109,0,0,28,0,1};
+ var empty=WindowsRouting.EmptyAaaaAnswer(aaaa);
+ Check(empty!=null&&empty[0]==0x12&&empty[1]==0x34&&(empty[2]&0x80)!=0&&(empty[3]&15)==0&&empty[6]==0&&empty[7]==0&&empty.Length==aaaa.Length,"AAAA query gets an empty NOERROR answer with the original ID");
+ var a=(byte[])aaaa.Clone();a[26]=1;
+ Check(WindowsRouting.EmptyAaaaAnswer(a)==null,"A query is not filtered");
+}
 using var rsa=RSA.Create(2048);
 var certRequest=new CertificateRequest("CN=1.1.1.1",rsa,HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);
 var san=new SubjectAlternativeNameBuilder();san.AddIpAddress(IPAddress.Parse("1.1.1.1"));certRequest.CertificateExtensions.Add(san.Build());

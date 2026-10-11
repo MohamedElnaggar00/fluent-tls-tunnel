@@ -111,13 +111,18 @@ public sealed partial class MainWindow : Window
         }
     }
     [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hwnd);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hwnd,int command);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool IsIconic(IntPtr hwnd);
     public void ActivateExisting()
     {
         if(allowClose)return;
+        var handle=WinRT.Interop.WindowNative.GetWindowHandle(this);
         AppWindow.Show();
         if(AppWindow.Presenter is OverlappedPresenter p && p.State==OverlappedPresenterState.Minimized)p.Restore();
+        // Win32 restore covers a window hidden by the tray close path or minimized behind other windows.
+        ShowWindow(handle,IsIconic(handle)?9:5);
         Activate();
-        SetForegroundWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        SetForegroundWindow(handle);
     }
     void MinimizeCaptionClick(object sender,RoutedEventArgs e){if(AppWindow.Presenter is OverlappedPresenter p)p.Minimize();}
     void MaximizeCaptionClick(object sender,RoutedEventArgs e){if(AppWindow.Presenter is OverlappedPresenter p){if(p.State==OverlappedPresenterState.Maximized)p.Restore();else p.Maximize();UpdateCaptionGlyph();}}

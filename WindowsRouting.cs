@@ -21,6 +21,7 @@ public sealed class WindowsRouting : IAsyncDisposable
     string[] resolvers=new[]{"1.1.1.1","1.0.0.1"};
     bool preferDoh;
     bool socksProbePassed;
+    long aaaaFiltered;
     public void PollDiagnostics()
     {
         foreach(var name in new[]{"route-diagnostics.txt","engine-output.txt","engine-error.txt"})try{
@@ -29,7 +30,41 @@ public sealed class WindowsRouting : IAsyncDisposable
             foreach(var line in lines.Skip(count).TakeLast(30))if(!string.IsNullOrWhiteSpace(line))diagnostic?.Invoke("Routing: "+name+": "+line);
             linesRead[name]=lines.Length;
         }catch(IOException){}
-        if(DateTime.UtcNow>=nextSummary){nextSummary=DateTime.UtcNow.AddSeconds(15);diagnostic?.Invoke($"Routing: DNS requests={Interlocked.Read(ref dnsRequests)} answers={Interlocked.Read(ref dnsAnswers)} failures={Interlocked.Read(ref dnsFailures)} transport={(preferDoh?"HTTPS through SOCKS":"TCP through SOCKS")}");}
+        if(DateTime.UtcNow>=nextSummary){nextSummary=DateTime.UtcNow.AddSeconds(15);diagnostic?.Invoke($"Routing: DNS requests={Interlocked.Read(ref dnsRequests)} answers={Interlocked.Read(ref dnsAnswers)} failures={Interlocked.Read(ref dnsFailures)} transport={(preferDoh?"HTTPS through SOCKS":"TCP through SOCKS")} aaaaEmpty={Interlocked.Read(ref aaaaFiltered)}");}
+    }
+    // AAAA queries are always answered locally with an empty NOERROR response, so applications stay on IPv4
+    // instead of connecting to IPv6 addresses that the tunnel accepts locally and then closes.
+    public static byte[]? EmptyAaaaAnswer(byte[] query)
+    {
+        if(query.Length<17||((query[4]<<8)|query[5])!=1)return null;
+        int pos=12;
+        while(pos<query.Length&&query[pos]!=0){if((query[pos]&0xC0)!=0)return null;pos+=query[pos]+1;}
+        int end=pos+5;
+        if(pos>=query.Length||end>query.Length)return null;
+        if(((query[pos+1]<<8)|query[pos+2])!=28)return null;
+        var answer=new byte[end];Array.Copy(query,answer,end);
+        answer[2]=(byte)(0x80|(query[2]&1));answer[3]=0x80;
+        for(int i=6;i<12;i++)answer[i]=0;
+        return answer;
+    }
+    async Task ProbeHttpsByName(CancellationToken ct)
+    {
+        // Uses the Windows network path (TUN) and Windows name resolution (our DNS proxy), like a browser does.
+        using var handler=new SocketsHttpHandler{UseProxy=false,ConnectTimeout=TimeSpan.FromSeconds(8)};
+        using var client=new HttpClient(handler){Timeout=Timeout.InfiniteTimeSpan};
+        Exception? last=null;
+        foreach(var url in new[]{"https://example.com/","https://one.one.one.one/"})
+        {
+            try
+            {
+                using var attempt=CancellationTokenSource.CreateLinkedTokenSource(ct);attempt.CancelAfter(TimeSpan.FromSeconds(12));
+                using var request=new HttpRequestMessage(HttpMethod.Head,url);
+                using var response=await client.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,attempt.Token);
+                diagnostic?.Invoke($"Routing: probe HTTPS by name PASS ({url} {(int)response.StatusCode})");return;
+            }
+            catch(Exception e) when(!ct.IsCancellationRequested){last=e;diagnostic?.Invoke($"Routing: probe HTTPS by name FAIL ({url}): {e.GetType().Name}: {e.Message}");}
+        }
+        throw new IOException("Browsing through the tunnel failed: HTTPS by hostname does not work. Windows routing was restored. | تعذر تصفح المواقع عبر النفق، وأُعيد توجيه ويندوز إلى حالته الأصلية.",last);
     }
     static byte[] TestQuery()=>new byte[]{0x46,0x54,1,0,0,1,0,0,0,0,0,0,7,101,120,97,109,112,108,101,3,99,111,109,0,0,1,0,1};
     async Task ProbeHttp(bool throughSocks,CancellationToken ct)
@@ -89,6 +124,12 @@ public sealed class WindowsRouting : IAsyncDisposable
                     PollDiagnostics();diagnostic?.Invoke("Routing: probe Windows TUN TCP FAIL: "+e.GetType().Name+": "+e.Message);
                     if(socksProbePassed)throw new IOException("SOCKS TCP works but Windows TUN TCP fails. Routing was restored; see engine diagnostics.",e);
                 }
+            }
+            if(Environment.GetEnvironmentVariable("FLUENT_TLS_SKIP_NAME_PROBE")!="1")using(var probe=CancellationTokenSource.CreateLinkedTokenSource(ct)){
+                probe.CancelAfter(TimeSpan.FromSeconds(30));
+                diagnostic?.Invoke("Routing: probe HTTPS by name starting");
+                try{await ProbeHttpsByName(probe.Token);}
+                catch(IOException){PollDiagnostics();throw;}
             }
         }
         catch {await DisposeAsync();throw;}
@@ -154,6 +195,7 @@ public sealed class WindowsRouting : IAsyncDisposable
     async Task<byte[]> Resolve(byte[] query,CancellationToken ct)
     {
         if(query.Length<12)throw new IOException("Invalid DNS query");
+        if(EmptyAaaaAnswer(query) is {} empty){Interlocked.Increment(ref aaaaFiltered);return empty;}
         Interlocked.Increment(ref dnsRequests);
         if(preferDoh)return await ResolveDoh(query,ct);
         Exception? last=null;

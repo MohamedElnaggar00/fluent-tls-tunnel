@@ -36,7 +36,17 @@ try {
  $bitmap.Save((Join-Path (Get-Location) 'artifacts/screenshots/single-instance-restored.png'))
  $g.Dispose();$bitmap.Dispose()
  [InstanceNative]::ShowWindow($handle,5)|Out-Null
+ # The close button hides the window to the tray; the process must keep running until Quit is chosen from the tray menu.
  $app.CloseMainWindow()|Out-Null
- if(!$app.WaitForExit(15000)){throw 'Closing left a headless app process'}
+ Start-Sleep -Seconds 3
+ $app.Refresh()
+ if($app.HasExited){throw 'Close button exited the app instead of minimizing to the tray'}
+ if([InstanceNative]::IsWindowVisible($handle)){throw 'Close button left the window visible'}
+ $again=Start-Process $exe -PassThru
+ if(!$again.WaitForExit(10000)){throw 'Second instance did not exit after tray close'}
+ $shown=$false
+ for($i=0;$i -lt 40;$i++){Start-Sleep -Milliseconds 250;$app.Refresh();if([InstanceNative]::IsWindowVisible($handle)){$shown=$true;break}}
+ if(!$shown){throw 'Second launch did not restore the window hidden in the tray'}
+ Write-Host 'Close hides to the tray and a second launch restores the window'
  Set-Content artifacts/single-instance-passed.txt passed
 } finally {Get-Process FluentTlsTunnel -ErrorAction SilentlyContinue|Stop-Process -Force}

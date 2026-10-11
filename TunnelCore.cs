@@ -100,7 +100,9 @@ public sealed class Tunnel : IAsyncDisposable
             ssh.ErrorOccurred += (_,e) => log("SSH: " + e.Exception.Message);
             await ssh.ConnectAsync(ct);
             socks = new ForwardedPortDynamic("127.0.0.1",(uint)p.SocksPort);
-            socks.Exception += (_,e) => log("SOCKS: " + e.Exception.Message);
+            long socksFailures=0;long nextSocksLog=0;
+            // SOCKS channel failures can arrive by the hundred; log a rate-limited summary with a running total.
+            socks.Exception += (_,e) => { var total=Interlocked.Increment(ref socksFailures); var now=Environment.TickCount64; if(now>=Interlocked.Read(ref nextSocksLog)){Interlocked.Exchange(ref nextSocksLog,now+5000);log("SOCKS: " + e.Exception.Message + " (failures so far: " + total + ")");} };
             ssh.AddForwardedPort(socks); socks.Start(); log("connected");
         }
         catch { await DisposeAsync(); throw; }

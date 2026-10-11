@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.1
+- Fixed browsing failing with connection-closed errors while connected: DNS answers now always stay on IPv4 (AAAA queries receive an empty answer), keeping the IPv6 routes inside the tunnel so no IPv6 traffic leaks.
+- After routing is applied, the app tests HTTPS by hostname; if browsing does not work, routing is restored automatically and a clear message is shown.
+- Improved restoring the window from the tray on a second launch.
+- The connection log now reports a rate-limited summary of SOCKS channel failures.
+- Updated the single-instance test to match closing to the tray.
+- Three bundled-runtime downloads: portable, installer and full offline kit.
+
+### العربية
+- إصلاح فشل تصفح المواقع برسالة إغلاق الاتصال أثناء الاتصال: أصبحت إجابات DNS تقتصر دائمًا على IPv4 (تتلقى استعلامات AAAA إجابة فارغة)، مع إبقاء مسارات IPv6 داخل النفق حتى لا تتسرب أي حركة IPv6.
+- بعد تطبيق التوجيه يختبر التطبيق اتصال HTTPS بالاسم؛ وإذا لم يعمل التصفح تُستعاد إعدادات التوجيه تلقائيًا وتظهر رسالة واضحة.
+- تحسين استعادة النافذة من منطقة الإشعارات عند تشغيل التطبيق مرة ثانية.
+- يعرض سجل الاتصال الآن ملخصًا محدود التكرار لإخفاقات قنوات SOCKS.
+- تحديث اختبار النسخة الواحدة ليتوافق مع الإغلاق إلى منطقة الإشعارات.
+- ثلاثة خيارات تنزيل تتضمن ملفات التشغيل المطلوبة: محمول ومثبت وحزمة كاملة دون اتصال.
+
 ## v0.2.0
 - Added pooled HTTPS DNS queries through the tunnel, with fallback across Cloudflare resolvers, retries and short-lived caching.
 - Enlarged and widened the connection log and added a Clear log button.
