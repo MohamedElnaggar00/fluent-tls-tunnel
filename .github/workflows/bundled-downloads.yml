@@ -16,14 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: v0.1.7
+          ref: main
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Test secure password persistence
+        run: dotnet run --project PasswordStoreTests.csproj -c Release
       - name: Publish fully self-contained app
         shell: pwsh
         run: |
-          dotnet publish FluentTlsTunnel.csproj -c Release -r win-x64 -p:Platform=x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsAppSdkBootstrapInitialize=false -p:DebugType=none -p:Version=0.1.7 -o publish
+          dotnet publish FluentTlsTunnel.csproj -c Release -r win-x64 -p:Platform=x64 --self-contained true -p:WindowsAppSDKSelfContained=true -p:WindowsAppSdkBootstrapInitialize=false -p:DebugType=none -p:Version=0.1.8 -o publish
           if ($LASTEXITCODE -ne 0) { throw 'App publish failed' }
           # Ship Microsoft's app-local VC runtime rather than installing a machine-wide redistributable.
           $vs = & "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe" -latest -property installationPath
@@ -67,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           @'
-          FluentTlsTunnel 0.1.7 - x64
+          FluentTlsTunnel 0.1.8 - x64
           Windows 10 version 1809 or later / Windows 11 (x64).
           Extract the entire ZIP before running FluentTlsTunnel.exe. Keep all files together.
           .NET, Windows App SDK, and VC runtime files are bundled. No runtime installation is required.
@@ -76,14 +78,14 @@ jobs:
           brought to you by Instinct - https://instinct.com
           '@ | Set-Content publish/README.txt -Encoding utf8
           Copy-Item LICENSE publish/LICENSE.txt
-          Compress-Archive -Path publish/* -DestinationPath 'FluentTlsTunnel-v0.1.7-portable-win-x64.zip'
-          & "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe" /DSourceDir=publish /DBuildVersion=0.1.7 /DFlavor=installer Installer.iss
+          Compress-Archive -Path publish/* -DestinationPath 'FluentTlsTunnel-v0.1.8-portable-win-x64.zip'
+          & "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe" /DSourceDir=publish /DBuildVersion=0.1.8 /DFlavor=installer Installer.iss
           if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
-          Copy-Item artifacts/packages/Fluent-TLS-Tunnel-installer.exe 'FluentTlsTunnel-v0.1.7-installer-win-x64.exe'
+          Copy-Item artifacts/packages/Fluent-TLS-Tunnel-installer.exe 'FluentTlsTunnel-v0.1.8-installer-win-x64.exe'
       - name: Verify installer extraction and installed launch
         shell: pwsh
         run: |
-          $p = Start-Process './FluentTlsTunnel-v0.1.7-installer-win-x64.exe' -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          $p = Start-Process './FluentTlsTunnel-v0.1.8-installer-win-x64.exe' -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Installer failed: $($p.ExitCode)" }
           $root = "$env:LOCALAPPDATA/Programs/FluentTlsTunnel"
           if (-not (Test-Path "$root/FluentTlsTunnel.exe")) { throw 'Per-user install missing' }
@@ -108,7 +110,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force offline/runtimes | Out-Null
-          Copy-Item 'FluentTlsTunnel-v0.1.7-installer-win-x64.exe' offline/Install.exe
+          Copy-Item 'FluentTlsTunnel-v0.1.8-installer-win-x64.exe' offline/Install.exe
           $downloads = @(
             @{ url='https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/8.0.31/windowsdesktop-runtime-8.0.31-win-x64.exe'; name='windowsdesktop-runtime-x64.exe'; sha512='605189223cf0a64bfb5453520b794d1d386a97c7e65e3944feaf9214db1a8b247f66c569265aef4204447baf5b5ff19559c323d887e1318f17deb28a5af0fa12' },
             @{ url='https://aka.ms/windowsappsdk/1.6/1.6.250602001/windowsappruntimeinstall-x64.exe'; name='windowsappruntimeinstall-x64.exe'; sha512='' },
@@ -129,8 +131,8 @@ jobs:
           These optional system installers can require administrator rights. They are not needed to run this app.
           '@ | Set-Content offline/README.txt -Encoding utf8
           Get-ChildItem offline -Recurse -File | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content offline/SHA256.json
-          Compress-Archive offline/* 'FluentTlsTunnel-v0.1.7-full-offline-win-x64.zip'
-          Expand-Archive 'FluentTlsTunnel-v0.1.7-full-offline-win-x64.zip' offline-test
+          Compress-Archive offline/* 'FluentTlsTunnel-v0.1.8-full-offline-win-x64.zip'
+          Expand-Archive 'FluentTlsTunnel-v0.1.8-full-offline-win-x64.zip' offline-test
           $test = Start-Process './offline-test/Install.exe' -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
           if ($test.ExitCode -ne 0) { throw 'Offline kit install failed' }
           $app = Start-Process "$env:LOCALAPPDATA/Programs/FluentTlsTunnel/FluentTlsTunnel.exe" -ArgumentList '--preview=en --state=about' -PassThru
@@ -141,8 +143,8 @@ jobs:
         with:
           name: verified-downloads
           path: |
-            FluentTlsTunnel-v0.1.7-*.zip
-            FluentTlsTunnel-v0.1.7-*.exe
+            FluentTlsTunnel-v0.1.8-*.zip
+            FluentTlsTunnel-v0.1.8-*.exe
             app-launch.png
             dependency-proof.json
             installed-launch.png
@@ -170,19 +172,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload v0.1.7 './FluentTlsTunnel-v0.1.7-portable-win-x64.zip' './FluentTlsTunnel-v0.1.7-installer-win-x64.exe' './FluentTlsTunnel-v0.1.7-full-offline-win-x64.zip'
+          gh release view v0.1.8 --json tagName | Out-Null
+          if ($LASTEXITCODE -ne 0) { gh release create v0.1.8 --target '${{ github.sha }}' --title 'Fluent TLS Tunnel v0.1.8' --notes-file CHANGELOG.md }
+          gh release upload v0.1.8 './FluentTlsTunnel-v0.1.8-portable-win-x64.zip' './FluentTlsTunnel-v0.1.8-installer-win-x64.exe' './FluentTlsTunnel-v0.1.8-full-offline-win-x64.zip'
           if ($LASTEXITCODE -ne 0) { throw 'Upload failed; existing assets were not replaced' }
-          gh release view v0.1.7 --json body --jq .body > release-notes.md
+          gh release view v0.1.8 --json body --jq .body > release-notes.md
           $body = Get-Content release-notes.md -Raw
           $body = $body.Replace('Self-contained downloads','Downloads').Replace('self-contained', 'bundled-runtime').Replace('Self-contained', 'Bundled-runtime')
           $body | Set-Content release-notes.md -Encoding utf8
-          gh release edit v0.1.7 --notes-file release-notes.md
+          gh release edit v0.1.8 --notes-file release-notes.md
           if ($LASTEXITCODE -ne 0) { throw 'Notes update failed' }
-          gh release view v0.1.7 --json assets > assets.json
+          gh release view v0.1.8 --json assets > assets.json
           $assets = (Get-Content assets.json -Raw | ConvertFrom-Json).assets
-          foreach ($name in @('FluentTlsTunnel-v0.1.7-portable-win-x64.zip','FluentTlsTunnel-v0.1.7-installer-win-x64.exe','FluentTlsTunnel-v0.1.7-full-offline-win-x64.zip')) {
+          foreach ($name in @('FluentTlsTunnel-v0.1.8-portable-win-x64.zip','FluentTlsTunnel-v0.1.8-installer-win-x64.exe','FluentTlsTunnel-v0.1.8-full-offline-win-x64.zip')) {
             if (-not ($assets | Where-Object { $_.name -eq $name -and $_.size -gt 1000000 })) { throw "Missing replacement $name" }
-          }
-          foreach ($name in @('Fluent-TLS-Tunnel-installer.exe','Fluent-TLS-Tunnel-portable.zip','Fluent-TLS-Tunnel-runtime-dependent.exe')) {
-            if ($assets | Where-Object name -eq $name) { gh release delete-asset v0.1.7 $name --yes; if ($LASTEXITCODE -ne 0) { throw 'Suffix cleanup failed' } }
           }
