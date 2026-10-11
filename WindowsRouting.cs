@@ -112,16 +112,44 @@ public sealed class WindowsRouting : IAsyncDisposable
         var size=new byte[2];await s.ReadExactlyAsync(size,ct);int n=(size[0]<<8)|size[1];if(n<12)throw new IOException("Invalid DNS answer");
         var answer=new byte[n];await s.ReadExactlyAsync(answer,ct);return answer;
     }
+    HttpClient? dohClient;
+    readonly object dohLock=new();
+    readonly SemaphoreSlim dohLimit=new(12);
+    readonly Dictionary<string,(byte[] Answer,DateTime Expires)> dohCache=new();
+    HttpClient DohClient()
+    {
+        // One pooled client: a single HTTPS connection through the tunnel is reused (HTTP/2 multiplexing), instead of a new
+        // TLS handshake and SSH channel for every DNS query. The proxy is mandatory: never fall back to the physical network.
+        lock(dohLock)return dohClient??=new HttpClient(new SocketsHttpHandler{Proxy=new WebProxy($"socks5://127.0.0.1:{port}"),UseProxy=true,AllowAutoRedirect=false,PooledConnectionLifetime=TimeSpan.FromMinutes(5),PooledConnectionIdleTimeout=TimeSpan.FromMinutes(2),ConnectTimeout=TimeSpan.FromSeconds(8),EnableMultipleHttp2Connections=false}){Timeout=Timeout.InfiniteTimeSpan,DefaultRequestVersion=new Version(2,0),DefaultVersionPolicy=HttpVersionPolicy.RequestVersionOrLower};
+    }
     async Task<byte[]> ResolveDoh(byte[] query,CancellationToken ct)
     {
-        // Literal endpoint avoids bootstrap DNS. Proxy is mandatory: never fall back to the physical network.
-        using var handler=new SocketsHttpHandler{Proxy=new WebProxy($"socks5://127.0.0.1:{port}"),UseProxy=true,AllowAutoRedirect=false};
-        using var client=new HttpClient(handler);
-        using var body=new ByteArrayContent(query);body.Headers.ContentType=new MediaTypeHeaderValue("application/dns-message");
-        using var response=await client.PostAsync("https://1.1.1.1/dns-query",body,ct);response.EnsureSuccessStatusCode();
-        var answer=await response.Content.ReadAsByteArrayAsync(ct);if(answer.Length<12||answer.Length>65535||(answer[2]&128)==0)throw new IOException("Invalid HTTPS DNS answer");
-        // HTTP correlates the response; restore the Windows query ID.
-        answer[0]=query[0];answer[1]=query[1];return answer;
+        var key=Convert.ToBase64String(query,2,query.Length-2);
+        lock(dohLock)if(dohCache.TryGetValue(key,out var hit)&&hit.Expires>DateTime.UtcNow){var cached=(byte[])hit.Answer.Clone();cached[0]=query[0];cached[1]=query[1];return cached;}
+        await dohLimit.WaitAsync(ct);
+        try
+        {
+            Exception? last=null;
+            foreach(var url in new[]{"https://1.1.1.1/dns-query","https://1.0.0.1/dns-query","https://1.1.1.1/dns-query"})
+            {
+                try
+                {
+                    using var attempt=CancellationTokenSource.CreateLinkedTokenSource(ct);attempt.CancelAfter(TimeSpan.FromSeconds(6));
+                    using var body=new ByteArrayContent(query);body.Headers.ContentType=new MediaTypeHeaderValue("application/dns-message");
+                    using var request=new HttpRequestMessage(HttpMethod.Post,url){Content=body};request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/dns-message"));
+                    using var response=await DohClient().SendAsync(request,attempt.Token);response.EnsureSuccessStatusCode();
+                    var answer=await response.Content.ReadAsByteArrayAsync(attempt.Token);
+                    if(answer.Length<12||answer.Length>65535||(answer[2]&128)==0)throw new IOException("Invalid HTTPS DNS answer");
+                    // HTTP correlates the response; restore the Windows query ID.
+                    answer[0]=query[0];answer[1]=query[1];
+                    if((answer[3]&15)==0&&((answer[6]<<8)|answer[7])>0)lock(dohLock){if(dohCache.Count>2000)dohCache.Clear();dohCache[key]=((byte[])answer.Clone(),DateTime.UtcNow.AddSeconds(30));}
+                    return answer;
+                }
+                catch(Exception e) when(!ct.IsCancellationRequested){last=e;}
+            }
+            throw new IOException("HTTPS DNS failed after retries: "+last?.Message,last);
+        }
+        finally{dohLimit.Release();}
     }
     async Task<byte[]> Resolve(byte[] query,CancellationToken ct)
     {
@@ -144,9 +172,9 @@ public sealed class WindowsRouting : IAsyncDisposable
     }
     static async Task<int> ReadByte(Stream s,CancellationToken ct){var b=new byte[1];await s.ReadExactlyAsync(b,ct);return b[0];}
     async Task UdpLoop(){try{while(!stop.IsCancellationRequested){var packet=await udp!.ReceiveAsync(stop.Token);_=Respond(packet);}}catch(OperationCanceledException){}catch(ObjectDisposedException){}}
-    async Task Respond(UdpReceiveResult packet){try{using var t=CancellationTokenSource.CreateLinkedTokenSource(stop.Token);t.CancelAfter(10000);var answer=await Resolve(packet.Buffer,t.Token);Interlocked.Increment(ref dnsAnswers);await udp!.SendAsync(answer,packet.RemoteEndPoint,t.Token);}catch(Exception e){Interlocked.Increment(ref dnsFailures);if(Interlocked.Read(ref dnsFailures)<=5)diagnostic?.Invoke("Routing: DNS UDP failed: "+e.Message); /* No direct DNS fallback. */ }}
+    async Task Respond(UdpReceiveResult packet){try{using var t=CancellationTokenSource.CreateLinkedTokenSource(stop.Token);t.CancelAfter(20000);var answer=await Resolve(packet.Buffer,t.Token);Interlocked.Increment(ref dnsAnswers);await udp!.SendAsync(answer,packet.RemoteEndPoint,t.Token);}catch(Exception e){Interlocked.Increment(ref dnsFailures);if(Interlocked.Read(ref dnsFailures)<=5)diagnostic?.Invoke("Routing: DNS UDP failed: "+e.Message); /* No direct DNS fallback. */ }}
     async Task TcpLoop(){try{while(!stop.IsCancellationRequested){var c=await tcp!.AcceptTcpClientAsync(stop.Token);_=RespondTcp(c);}}catch(OperationCanceledException){}catch(ObjectDisposedException){}catch(SocketException) when(stop.IsCancellationRequested){}}
-    async Task RespondTcp(TcpClient c){using(c)try{using var t=CancellationTokenSource.CreateLinkedTokenSource(stop.Token);t.CancelAfter(10000);var s=c.GetStream();var size=new byte[2];await s.ReadExactlyAsync(size,t.Token);int n=(size[0]<<8)|size[1];if(n<12)return;var q=new byte[n];await s.ReadExactlyAsync(q,t.Token);var a=await Resolve(q,t.Token);Interlocked.Increment(ref dnsAnswers);await s.WriteAsync(new byte[]{(byte)(a.Length>>8),(byte)a.Length},t.Token);await s.WriteAsync(a,t.Token);}catch(Exception e){Interlocked.Increment(ref dnsFailures);if(Interlocked.Read(ref dnsFailures)<=5)diagnostic?.Invoke("Routing: DNS TCP client failed: "+e.Message);}}
+    async Task RespondTcp(TcpClient c){using(c)try{using var t=CancellationTokenSource.CreateLinkedTokenSource(stop.Token);t.CancelAfter(20000);var s=c.GetStream();var size=new byte[2];await s.ReadExactlyAsync(size,t.Token);int n=(size[0]<<8)|size[1];if(n<12)return;var q=new byte[n];await s.ReadExactlyAsync(q,t.Token);var a=await Resolve(q,t.Token);Interlocked.Increment(ref dnsAnswers);await s.WriteAsync(new byte[]{(byte)(a.Length>>8),(byte)a.Length},t.Token);await s.WriteAsync(a,t.Token);}catch(Exception e){Interlocked.Increment(ref dnsFailures);if(Interlocked.Read(ref dnsFailures)<=5)diagnostic?.Invoke("Routing: DNS TCP client failed: "+e.Message);}}
     public static async Task RestoreAsync()
     {
         string dir=Path.Combine(Profile.DataDir,"restore-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(dir);
@@ -165,6 +193,6 @@ public sealed class WindowsRouting : IAsyncDisposable
             if(!File.Exists(Path.Combine(session,"restored")))throw new InvalidOperationException("Routing restore failed. Keep the recovery journal.");
             helper.Dispose();helper=null;
         }
-        stop.Cancel();udp?.Dispose();tcp?.Stop();disposed=true;
+        stop.Cancel();dohClient?.Dispose();udp?.Dispose();tcp?.Stop();disposed=true;
     }
 }
