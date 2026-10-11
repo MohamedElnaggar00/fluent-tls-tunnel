@@ -244,7 +244,7 @@ public sealed partial class MainWindow : Window
             connectingTask=Task.Run(()=>tunnel.ConnectAsync(p,password,ConfirmKey,Log,cancel.Token));
             await connectingTask;
             cancel.Token.ThrowIfCancellationRequested();
-            if(p.RouteWindows){routing=new();await routing.StartAsync(tunnel.RemoteAddress??throw new InvalidOperationException("TLS endpoint unavailable"),p.SocksPort,cancel.Token);}
+            if(p.RouteWindows){routing=new();await routing.StartAsync(tunnel.RemoteAddress??throw new InvalidOperationException("TLS endpoint unavailable"),p.SocksPort,cancel.Token,tunnel.LocalAddress,Log);}
             if(p.UseDns && !p.RouteWindows) await DnsManager.ApplyAsync(p.AdapterIndex,Profile.ParseDns(p.DnsServers));
             connectedClock.Restart(); ShowConnectedNotification();
 
