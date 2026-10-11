@@ -39,7 +39,7 @@ try {
   Save-State
   $prefix=$ip.ToString()+$(if($ip.AddressFamily -eq 'InterNetwork'){ '/32' }else{'/128'})
   Add-OwnedRoute $prefix $route.InterfaceIndex $route.NextHop
-  $start=@{FilePath=(Join-Path $PSScriptRoot 'Routing/tun2socks.exe');ArgumentList=@('--device','tun://Fluent_TLS_Tunnel','--proxy',"socks5://127.0.0.1:$SocksPort",'--loglevel','warn');PassThru=$true;WindowStyle='Hidden';RedirectStandardError=(Join-Path $Session 'engine-error.txt');RedirectStandardOutput=(Join-Path $Session 'engine-output.txt')}
+  $start=@{FilePath=(Join-Path $PSScriptRoot 'Routing/tun2socks.exe');ArgumentList=@('--device','tun://Fluent_TLS_Tunnel','--proxy',"socks5://127.0.0.1:$SocksPort",'--loglevel','info');PassThru=$true;WindowStyle='Hidden';RedirectStandardError=(Join-Path $Session 'engine-error.txt');RedirectStandardOutput=(Join-Path $Session 'engine-output.txt')}
   $engine=Start-Process @start
   $state.EngineId=$engine.Id;$state.EngineTicks=$engine.StartTime.ToUniversalTime().Ticks;$state.Adapter='Fluent_TLS_Tunnel';Save-State
   $adapter=$null
@@ -78,7 +78,10 @@ try {
   $rule=Add-DnsClientNrptRule -Namespace '.' -NameServers '127.0.0.1' -Comment $tag -PassThru
   $state.Rule=$rule.Name;Save-State
   Clear-DnsClientCache
-  Set-Content (Join-Path $Session 'ready') 'ready'
+  Write-RouteDiagnostic ('TUN adapter index='+$adapter.ifIndex+' IPv4=198.18.0.1 IPv6='+$v6ok+' engine='+$engine.Id)
+  Write-RouteDiagnostic ('TUN routes: '+((Get-NetRoute -InterfaceIndex $adapter.ifIndex | Select-Object DestinationPrefix,NextHop,RouteMetric | ConvertTo-Json -Compress)))
+  try { Write-RouteDiagnostic ('Effective 1.1.1.1 route: '+((Find-NetRoute -RemoteIPAddress '1.1.1.1' -ErrorAction SilentlyContinue | Select-Object InterfaceIndex,DestinationPrefix,NextHop | ConvertTo-Json -Compress))) } catch { Write-RouteDiagnostic ('Probe route lookup failed: '+$_.Exception.Message) }
+  Set-Content (Join-Path $Session 'ready') 'ready' 
   while(!(Test-Path (Join-Path $Session 'stop'))){
     $parent=Get-Process -Id $Owner -ErrorAction SilentlyContinue
     if(!$parent -or $parent.StartTime.ToUniversalTime().Ticks -ne $OwnerTicks){break}
