@@ -20,3 +20,6 @@ $fallback=Resolve-EndpointRoute '141.98.233.74' ''
 Check ($fallback.InterfaceIndex -eq 12 -and $fallback.NextHop -eq '0.0.0.0') 'Longest-prefix PPP on-link uplink wins; own TUN excluded'
 $fallback=Resolve-EndpointRoute '141.98.233.74' '10.0.0.2'
 Check ($fallback.InterfaceIndex -eq 12) 'Fallback remains on connected TLS source interface'
+
+$mapped=Resolve-EndpointRoute '::ffff:141.98.233.74' '::ffff:10.0.0.2'
+Check ($mapped.InterfaceIndex -eq 12) 'Mapped IPv4 socket addresses use IPv4 route table'
